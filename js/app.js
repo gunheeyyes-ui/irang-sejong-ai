@@ -76,7 +76,14 @@ async function fetchAutoEnv() {
   try {
     const fcUrl = `https://api.open-meteo.com/v1/forecast?latitude=${SEJONG_COORDS.lat}&longitude=${SEJONG_COORDS.lon}&current=temperature_2m,precipitation,weather_code&timezone=Asia%2FSeoul`;
     const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${SEJONG_COORDS.lat}&longitude=${SEJONG_COORDS.lon}&current=pm10,pm2_5&timezone=Asia%2FSeoul`;
-    const [fcRes, aqRes] = await Promise.all([fetch(fcUrl), fetch(aqUrl)]);
+    // 응답이 느릴 경우 6초 후 중단 (화면이 멈추지 않도록)
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    const [fcRes, aqRes] = await Promise.all([
+      fetch(fcUrl, { signal: ctrl.signal }),
+      fetch(aqUrl, { signal: ctrl.signal }),
+    ]);
+    clearTimeout(timer);
     const fc = await fcRes.json();
     const aq = await aqRes.json();
 
@@ -168,10 +175,36 @@ function slotLabel(slot) {
 // 1. 탭 라우팅
 // ============================================================
 
+let demoRecommendDone = false;
+let demoAskDone = false;
+
 function activateTab(name) {
   $$(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === name));
   $$(".page").forEach(p => p.classList.toggle("active", p.id === name));
+  window.scrollTo(0, 0);
   if (name === "dashboard") renderDashboard();
+
+  // 심사위원 데모: 탭을 처음 열면 대표 예시를 자동 표시
+  if (name === "recommend" && !demoRecommendDone && !$("#recommend-results").hasChildNodes()) {
+    demoRecommendDone = true;
+    runRecommendDemo();
+  }
+  if (name === "ask" && !demoAskDone && !$("#ask-result").hasChildNodes()) {
+    demoAskDone = true;
+    $("#ask-input").value = "9개월 아기가 38.3도 열이 나는데 언제 병원에 가야 하나요?";
+    handleAsk();
+  }
+}
+
+// 외출 추천 데모 입력값 채우고 실행
+function runRecommendDemo() {
+  $("#recommend-text").value = "8개월 쌍둥이와 갈 만한 곳을 추천해줘. 쌍둥이 유모차를 써야 하고 수유실이 있으면 좋겠어.";
+  $("#recommend-age").value = "8";
+  $("#recommend-stroller").value = "twin";
+  $("#recommend-time").value = "afternoon";
+  $("#recommend-nursing").checked = true;
+  $("#recommend-indoor").checked = true;
+  runRecommendation();
 }
 
 function initTabs() {
@@ -1044,6 +1077,9 @@ function init() {
   $("#total-facilities").textContent = String(FACILITIES.length);
   $("#total-managed").textContent = String(FACILITIES.filter(f => f.managed).length);
   $("#total-districts").textContent = String(DISTRICTS.length);
+
+  // 심사위원 데모: 대시보드가 비어 보이지 않도록 최초 1회 샘플 통계 시드
+  if (loadLog().length === 0) seedDemoData();
 }
 
 document.addEventListener("DOMContentLoaded", init);
