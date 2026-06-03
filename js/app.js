@@ -433,7 +433,33 @@ function runRecommendation() {
     });
   }
 
-  renderRecommendResults(pass.slice(0, 3), alt.slice(0, 2), cond);
+  // 카테고리 다양화: 같은 유형 중복 방지 (복합커뮤니티센터는 1곳까지만)
+  const top = diversify(pass, 3);
+  renderRecommendResults(top, alt.slice(0, 4), cond);
+}
+
+// 추천 결과 다양화 — 서로 다른 시설 유형이 골고루 나오도록
+function diversify(sortedPass, n) {
+  const picked = [];
+  const usedCats = new Set();
+  // 1차: 점수 높은 순으로 서로 다른 카테고리에서 한 곳씩
+  for (const s of sortedPass) {
+    if (picked.length >= n) break;
+    if (usedCats.has(s.facility.category)) continue;
+    picked.push(s);
+    usedCats.add(s.facility.category);
+  }
+  // 2차: 자리가 남으면 채우되 복합커뮤니티센터는 1곳까지만 허용
+  if (picked.length < n) {
+    for (const s of sortedPass) {
+      if (picked.length >= n) break;
+      if (picked.includes(s)) continue;
+      const compCount = picked.filter(p => p.facility.category === "복합커뮤니티센터").length;
+      if (s.facility.category === "복합커뮤니티센터" && compCount >= 1) continue;
+      picked.push(s);
+    }
+  }
+  return picked;
 }
 
 function bucketAge(m) {
@@ -448,23 +474,27 @@ function renderRecommendResults(top, alt, cond) {
   const root = $("#recommend-results");
   root.innerHTML = "";
 
-  // 조건 요약
-  const summary = el("div", { class: "summary" }, [
-    el("strong", {}, "AI가 이해한 오늘의 조건"),
-    el("p", {}, conditionsToText(cond)),
-  ]);
-  root.appendChild(summary);
+  // AI가 반영한 조건 (자연어 이해 결과)
+  const condItems = buildConditionItems(cond);
+  const condGrid = el("dl", { class: "cond-grid" }, condItems.flatMap(([k, v]) => [
+    el("dt", {}, k), el("dd", {}, v),
+  ]));
+  root.appendChild(el("div", { class: "summary" }, [
+    el("strong", {}, "AI가 반영한 조건"),
+    condGrid,
+  ]));
 
   if (top.length === 0) {
     root.appendChild(el("div", { class: "empty" }, "조건에 정확히 맞는 시설을 찾지 못했습니다. 조건을 일부 완화하여 다시 검색해 보세요."));
   } else {
-    root.appendChild(el("h3", { class: "section-title" }, `추천 장소 (${top.length}곳)`));
+    root.appendChild(el("h3", { class: "section-title" }, `추천 장소 (${top.length}곳 · 서로 다른 유형)`));
     top.forEach((r, i) => root.appendChild(renderCard(r, i + 1, false, cond)));
   }
 
+  // AI가 제외한 후보 (이유 표시) — 단순 검색과 차별화
   if (alt.length > 0) {
-    root.appendChild(el("h3", { class: "section-title alt" }, "조건 조정 시 대체 가능"));
-    alt.forEach((r, i) => root.appendChild(renderCard(r, i + 1, true, cond)));
+    root.appendChild(el("h3", { class: "section-title alt" }, "AI가 제외한 후보 (이유)"));
+    root.appendChild(renderExcluded(alt));
   }
 
   // 안내 문구
@@ -472,6 +502,40 @@ function renderRecommendResults(top, alt, cond) {
     class: "disclaimer",
     html: `※ 운영시간·예약·휴관 등 변동 정보는 <b>공식 페이지에서 최종 확인</b>해 주세요. 정보 갱신 기준일: <b>${DATA_UPDATED}</b>`
   }));
+}
+
+// AI가 반영한 조건을 라벨/값 목록으로
+function buildConditionItems(c) {
+  const items = [];
+  items.push(["월령", c.ageMonths != null ? `${c.ageMonths}개월` : "미지정"]);
+  if (c.district) items.push(["생활권", c.district]);
+  items.push(["방문", `${resolveDay(c.day).name} ${slotLabel(c.timeSlot)}`]);
+  if (c.stroller) items.push(["이동수단", c.stroller === "twin" ? "쌍둥이/광폭 유모차" : "일반 유모차"]);
+  const env = [];
+  if (c.weather) env.push(weatherLabel(c.weather) + (c.weatherAuto ? "(자동)" : ""));
+  if (c.dustBad) env.push("미세먼지 나쁨" + (c.dustAuto ? "(자동)" : ""));
+  items.push(["오늘 환경", env.length ? env.join(", ") : "쾌적"]);
+  const pri = [];
+  if (c.preferIndoor) pri.push("실내");
+  if (c.needNursing) pri.push("수유실");
+  if (c.needDiaper) pri.push("기저귀 교환대");
+  if (c.costPref === "free") pri.push("무료만");
+  if (pri.length) items.push(["우선조건", pri.join(", ")]);
+  return items;
+}
+
+// 제외된 후보를 이유와 함께 간단히 표시
+function renderExcluded(alt) {
+  const box = el("div", { class: "excluded" });
+  alt.forEach(r => {
+    const warn = r.reasons.find(x => x.type === "warn");
+    box.appendChild(el("div", { class: "excluded-row" }, [
+      el("span", { class: "ex-name" }, r.facility.name),
+      el("span", { class: "ex-cat muted" }, r.facility.category),
+      el("span", { class: "ex-reason" }, warn ? warn.text : "조건 미충족"),
+    ]));
+  });
+  return box;
 }
 
 function conditionsToText(c) {
@@ -502,6 +566,7 @@ function renderCard(r, rank, isAlt, cond = {}) {
 
   const day = resolveDay(cond.day);
   const hour = day.isWeekend ? f.hours.weekend : f.hours.weekday;
+  const score = Math.min(100, Math.round(r.score));
 
   return el("article", { class: `card ${isAlt ? "alt" : ""}` }, [
     ribbon,
@@ -510,7 +575,15 @@ function renderCard(r, rank, isAlt, cond = {}) {
       badge,
     ]),
     el("p", { class: "muted" }, `${f.category} · ${f.district}`),
+    f.highlight ? el("p", { class: "highlight-tag" }, `★ ${f.highlight}`) : null,
+    el("div", { class: "score-line" }, [
+      el("span", { class: "score-badge" }, `적합도 ${score}점`),
+      el("div", { class: "score-track" }, [
+        el("div", { class: "score-fill", style: `width:${score}%` }),
+      ]),
+    ]),
     el("p", { class: "desc" }, f.description),
+    el("p", { class: "chips-label" }, "추천 이유"),
     el("div", { class: "chips" }, reasonChips),
     el("dl", { class: "kv" }, [
       el("dt", {}, `${day.name} 운영`), el("dd", {}, `${hour}`),
@@ -539,8 +612,8 @@ const QA_KEYWORDS = {
   응급: ["응급", "119", "경련", "의식", "호흡곤란", "토혈", "혈변", "피", "쓰러"],
   열: ["열", "발열", "고열", "체온", "38도", "39도"],
   예방접종: ["예방접종", "접종", "백신", "BCG", "DTaP", "MMR"],
-  발달: ["뒤집기", "걷기", "말", "옹알이", "발달", "성장", "기기", "앉기"],
-  보육: ["어린이집", "보육", "시간제", "돌봄", "원아모집", "입소"],
+  발달: ["뒤집기", "걷기", "말", "옹알이", "발달", "성장", "기기", "앉기", "기지 않", "기지않", "기어", "걷지", "서지", "뒤집지", "말이 늦", "말을 안", "말이 느"],
+  보육: ["어린이집", "보육", "시간제", "돌봄", "원아모집", "입소", "맡길", "맡기"],
   외출: ["외출", "갈 만한", "갈만한", "추천", "데려갈", "나들이"],
   프로그램: ["프로그램", "수업", "교실", "강좌", "교육"],
   건강: ["설사", "구토", "감기", "콧물", "기침", "발진", "아토피", "수면"],
@@ -554,38 +627,94 @@ function classifyQuestion(q) {
   return "기타";
 }
 
+// 질문에서 월령 추출
+function extractAgeMonths(q) {
+  const m = q.match(/(\d{1,2})\s*개월/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+// 질문 내용에 맞는 위험신호 체크리스트 키 선택
+function pickChecklist(cat, q) {
+  if (cat === "열") return "열";
+  if (cat === "응급") {
+    if (/설사|구토|토/.test(q)) return "설사구토";
+    if (/발진|두드러기/.test(q)) return "발진";
+    return "호흡";
+  }
+  if (cat === "건강") {
+    if (/설사|구토|토/.test(q)) return "설사구토";
+    if (/발진|두드러기|아토피/.test(q)) return "발진";
+    if (/기침|호흡|쌕쌕|숨/.test(q)) return "호흡";
+    return null;
+  }
+  return null;
+}
+
+function urgencyBadge(meta) {
+  return el("span", { class: `urgency-badge ${meta.urgency}` }, meta.urgencyLabel);
+}
+
+function renderAskSteps(meta) {
+  const ol = el("ol", { class: "steps-list" });
+  meta.steps.forEach(s => ol.appendChild(el("li", {}, s)));
+  return el("div", { class: "ask-steps" }, [
+    el("strong", { class: "ask-steps-title" }, "이 질문에 적용된 AI 처리 단계"),
+    ol,
+  ]);
+}
+
 function handleAsk() {
   const q = $("#ask-input").value.trim();
   if (!q) return;
   const cat = classifyQuestion(q);
+  const meta = QA_META[cat] || QA_META["기타"];
+  const ageM = extractAgeMonths(q);
 
-  pushLog({ type: "ask", category: cat, length: q.length });
+  pushLog({ type: "ask", category: cat, urgency: meta.urgency, length: q.length });
 
   const root = $("#ask-result");
   root.innerHTML = "";
 
-  // 분류 표시
-  root.appendChild(el("div", { class: "summary" }, [
-    el("strong", {}, "AI가 분류한 질문 영역"),
-    el("p", {}, `「${q}」 → 분류: ${cat}`),
+  // 1단계) 질문 분석 결과 박스
+  const rows = [
+    ["월령", ageM != null ? `${ageM}개월` : "질문에 명시 없음"],
+    ["주제", meta.topic],
+    ["긴급도", meta.urgencyLabel],
+    ["AI 처리 원칙", meta.principle],
+  ];
+  root.appendChild(el("div", { class: "analysis-box" }, [
+    el("div", { class: "analysis-head" }, [
+      el("strong", {}, "AI 질문 분석 결과"),
+      urgencyBadge(meta),
+    ]),
+    el("p", { class: "analysis-q" }, `“${q}”`),
+    el("dl", { class: "analysis-grid" }, rows.flatMap(([k, v]) => [
+      el("dt", {}, k), el("dd", {}, v),
+    ])),
   ]));
 
-  // 응급/열 → 위험신호 + 공식 응급 안내
+  // 2단계) 처리 단계
+  root.appendChild(renderAskSteps(meta));
+
+  // 3단계) 위험신호 체크리스트 (의료성 질문)
+  const clKey = pickChecklist(cat, q);
   if (cat === "응급" || cat === "열") {
-    root.appendChild(renderEmergencyBlock(cat === "열" ? "열" : "응급"));
+    root.appendChild(renderEmergencyBlock(clKey, true));
+  } else if (clKey) {
+    root.appendChild(renderEmergencyBlock(clKey, false));
   }
 
-  // 발달/건강 → 진단 금지 안내 + 위험신호 + 공식 정보
-  if (cat === "발달" || cat === "건강") {
+  // 진단하지 않음 안내 (체크리스트가 없는 발달/건강 질문)
+  if (cat === "발달" || (cat === "건강" && !clKey)) {
     root.appendChild(el("div", { class: "warning" }, [
-      el("strong", {}, "안내"),
-      el("p", {}, "AI는 진단을 제공하지 않습니다. 아래는 보호자가 참고할 수 있는 공식 정보와 위험신호 안내이며, 증상이 의심되면 보건소 또는 의료기관 상담을 권장합니다."),
+      el("strong", {}, "AI는 진단하지 않습니다"),
+      el("p", {}, "아래는 보호자가 참고할 수 있는 공식 정보와 안내이며, 우려가 지속되면 보건소 또는 의료기관 상담을 권장합니다."),
     ]));
   }
 
-  // 공식 링크 매핑
-  const links = OFFICIAL_LINKS[cat] || OFFICIAL_LINKS.외출;
-  root.appendChild(el("h3", { class: "section-title" }, "관련 공식 정보"));
+  // 공식정보 연결
+  const links = OFFICIAL_LINKS[cat] || OFFICIAL_LINKS["외출"];
+  root.appendChild(el("h3", { class: "section-title" }, "공식정보 연결"));
   const list = el("div", { class: "link-list" });
   links.forEach(l => list.appendChild(
     el("a", {
@@ -601,10 +730,10 @@ function handleAsk() {
   ));
   root.appendChild(list);
 
-  // 외출 분류 → 추천 기능으로 연결 제안
+  // 외출 분류 → 추천 기능 연결
   if (cat === "외출") {
     root.appendChild(el("div", { class: "cta" }, [
-      el("p", {}, "외출 장소 추천은 [외출 추천] 탭의 AI 추천을 이용해 보세요."),
+      el("p", {}, "오늘 날씨·월령·이동 조건을 반영한 장소 추천은 [외출 추천] 기능이 더 정확합니다."),
       el("button", {
         class: "btn primary",
         onclick: () => {
@@ -614,17 +743,24 @@ function handleAsk() {
       }, "외출 추천으로 이동 →"),
     ]));
   }
+
+  // 면책
+  root.appendChild(el("p", {
+    class: "disclaimer",
+    html: "※ AI는 진단·처방을 하지 않습니다. 신청·운영·휴관 등 변동 정보와 건강 판단은 <b>공식 페이지·의료기관에서 최종 확인</b>해 주세요."
+  }));
 }
 
-function renderEmergencyBlock(kind) {
-  const list = EMERGENCY_CHECKLIST[kind === "열" ? "열" : "호흡"];
-  return el("div", { class: "warning emergency" }, [
-    el("strong", {}, "🚨 위험신호 안내"),
+function renderEmergencyBlock(key, isEmergency = true) {
+  const list = EMERGENCY_CHECKLIST[key] || EMERGENCY_CHECKLIST["호흡"];
+  const titleMap = { 열: "발열 위험신호", 호흡: "호흡 관련 위험신호", 설사구토: "설사·구토 위험신호", 발진: "발진 위험신호" };
+  return el("div", { class: `warning ${isEmergency ? "emergency" : ""}` }, [
+    el("strong", {}, `🚨 먼저 확인할 위험신호 — ${titleMap[key] || "위험신호"}`),
     el("p", {}, "다음 중 하나라도 해당되면 즉시 119 또는 가까운 의료기관에 연락하세요."),
-    el("ul", {}, list.map(item => el("li", {}, item))),
+    el("ul", { class: "checklist" }, list.map(item => el("li", {}, item))),
     el("p", { class: "emergency-call" }, [
       el("a", { href: "tel:119", class: "btn danger" }, "119 신고"),
-      el("a", { href: "https://www.e-gen.or.kr/", target: "_blank", rel: "noopener", class: "btn secondary" }, "응급실 찾기"),
+      el("a", { href: "https://www.e-gen.or.kr/", target: "_blank", rel: "noopener", class: "btn secondary" }, "응급실·야간진료 찾기"),
     ]),
   ]);
 }
@@ -649,6 +785,9 @@ function renderDashboard() {
     root.appendChild(el("div", { class: "empty" }, "아직 수집된 이벤트가 없습니다. [외출 추천] 또는 [AI 질문]을 사용하면 비식별 통계가 누적됩니다. 또는 위의 '시연용 샘플 데이터 추가' 버튼을 눌러 데모 통계를 확인할 수 있습니다."));
     return;
   }
+
+  // 0) 조기 수요 신호 요약 (그래서 공무원이 무엇을 보는가)
+  root.appendChild(renderSignals(log));
 
   // 1) 생활권별 검색량
   const searches = log.filter(l => l.type === "search");
@@ -694,6 +833,53 @@ function countBy(arr, key) {
     counts[k] = (counts[k] || 0) + 1;
   });
   return counts;
+}
+
+// 조기 수요 신호 요약 — "그래서 행정이 무엇을 봐야 하는가"
+function renderSignals(log) {
+  const searches = log.filter(l => l.type === "search");
+  const asks = log.filter(l => l.type === "ask");
+  const signals = [];
+
+  const nurseByD = countBy(searches.filter(s => s.needNursing), "district");
+  const topNurse = Object.entries(nurseByD).sort((a, b) => b[1] - a[1])[0];
+  if (topNurse && topNurse[1] >= 2 && topNurse[0] !== "전체") {
+    signals.push(`🍼 ${topNurse[0]} 생활권 — 수유실 검색 ${topNurse[1]}건: 편의시설 개선·확충 우선지역 검토`);
+  }
+
+  const twinByD = countBy(searches.filter(s => s.needTwinStroller), "district");
+  const topTwin = Object.entries(twinByD).sort((a, b) => b[1] - a[1])[0];
+  if (topTwin && topTwin[1] >= 1 && topTwin[0] !== "전체") {
+    signals.push(`♿ ${topTwin[0]} 생활권 — 광폭/쌍둥이 유모차 검색 ${topTwin[1]}건: 출입 동선·경사로 점검`);
+  }
+
+  const careAsk = asks.filter(a => a.category === "보육").length;
+  if (careAsk >= 1) {
+    signals.push(`🕑 시간제보육 관련 질문 ${careAsk}건: 돌봄 공백 생활권 파악 및 안내 보강`);
+  }
+
+  const urgentAsk = asks.filter(a => a.urgency === "high" || a.urgency === "caution").length;
+  if (urgentAsk >= 1) {
+    signals.push(`🏥 건강·발달 등 주의 필요 질문 ${urgentAsk}건: 보건소 연계 안내 강화`);
+  }
+
+  const card = el("div", { class: "signal-card" }, [
+    el("strong", { class: "signal-title" }, "이번 기간 조기 수요 신호"),
+  ]);
+
+  if (signals.length === 0) {
+    card.appendChild(el("p", { class: "muted" }, "아직 신호로 집계할 데이터가 부족합니다. 검색·질문이 누적되면 자동으로 표시됩니다."));
+    return card;
+  }
+
+  const ul = el("ul", { class: "signal-list" });
+  signals.forEach(s => ul.appendChild(el("li", {}, s)));
+  card.appendChild(ul);
+  card.appendChild(el("div", { class: "signal-actions" }, [
+    el("strong", {}, "행정 활용"),
+    el("p", {}, "시설 개선 검토 · 프로그램 홍보 보완 · 담당부서 현장 확인 요청 (단독 정책근거가 아닌 보조 신호)"),
+  ]));
+  return card;
 }
 
 function renderBarChart(title, data, unit = "") {
