@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>아이랑 세종 AI · 0~36개월 영유아 가정을 위한 세종형 AI 안내</title>
+  <meta name="description" content="세종시 0~36개월 영유아 가정의 외출·돌봄 의사결정을 돕는 AI 안내 서비스 프로토타입">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-row">
+      <div class="brand">
+        <span class="brand-logo">🍼</span>
+        <div>
+          <h1 class="brand-title">아이랑 세종 AI</h1>
+          <p class="brand-sub">0~36개월 영유아 가정을 위한 세종형 AI 외출·돌봄 추천</p>
+        </div>
+      </div>
+      <nav class="tabs" aria-label="주요 메뉴">
+        <button class="tab active" data-tab="home">홈</button>
+        <button class="tab" data-tab="recommend">외출 추천</button>
+        <button class="tab" data-tab="ask">AI 질문</button>
+        <button class="tab" data-tab="dashboard">행정 대시보드</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ===== 홈 ===== -->
+    <section id="home" class="page active">
+      <div class="hero">
+        <h2 class="hero-title">
+          오늘, 우리 아이와 갈 수 있는 곳을<br>
+          <span class="accent">한 번에</span> 찾아드립니다.
+        </h2>
+        <p class="hero-sub">
+          세종시의 공공시설·돌봄자원 정보를 월령·날씨·유모차·수유 조건에 맞게 연결합니다.<br>
+          새로운 정보를 만드는 것이 아니라, 이미 있는 공공정보를 보호자의 오늘 상황에 맞게 안내하는 <strong>AI 안내 계층</strong>입니다.
+        </p>
+        <div class="hero-actions">
+          <button class="btn primary lg" onclick="document.querySelector('.tab[data-tab=recommend]').click()">외출 추천 시작</button>
+          <button class="btn ghost lg" onclick="document.querySelector('.tab[data-tab=ask]').click()">AI에게 질문하기</button>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <p class="stat-num"><span id="total-facilities">0</span></p>
+          <p class="stat-label">시범 대상 공공자원</p>
+        </div>
+        <div class="stat">
+          <p class="stat-num"><span id="total-managed">0</span></p>
+          <p class="stat-label">세종시 직접 관리</p>
+        </div>
+        <div class="stat">
+          <p class="stat-num"><span id="total-districts">0</span></p>
+          <p class="stat-label">생활권</p>
+        </div>
+        <div class="stat">
+          <p class="stat-num">8</p>
+          <p class="stat-label">추천 평가 항목</p>
+        </div>
+      </div>
+
+      <div class="features">
+        <article class="feature">
+          <div class="feature-icon">🗺️</div>
+          <h3>AI 오늘의 외출·돌봄 추천</h3>
+          <p>월령·생활권·날씨·수유실·유모차 조건을 종합해 오늘 이용 가능한 공공자원 상위 3곳과 대체안을 추천합니다.</p>
+          <ul class="feature-list">
+            <li>영유아 편의 / 이동 편의 / 주차</li>
+            <li>혼잡도 / 비용 / 운영시간</li>
+            <li>환경 적합도 / 월령 적합도</li>
+          </ul>
+          <button class="btn link" onclick="document.querySelector('.tab[data-tab=recommend]').click()">시작하기 →</button>
+        </article>
+
+        <article class="feature">
+          <div class="feature-icon">💬</div>
+          <h3>공식정보 연결형 AI 질의응답</h3>
+          <p>육아 질문을 영역별로 분류해 보건소·육아종합지원센터·예방접종도우미 등 공식 정보로 안내합니다.</p>
+          <ul class="feature-list">
+            <li>AI는 진단하지 않습니다</li>
+            <li>응급·발달 질문은 위험신호 체크 + 119 안내</li>
+            <li>모든 답변에 공식 페이지 링크 병기</li>
+          </ul>
+          <button class="btn link" onclick="document.querySelector('.tab[data-tab=ask]').click()">시작하기 →</button>
+        </article>
+
+        <article class="feature">
+          <div class="feature-icon">📊</div>
+          <h3>영유아 수요 행정 대시보드</h3>
+          <p>시민의 검색·클릭·대체검색을 생활권·월령대·시간대 단위 비식별 통계로 행정에 환류합니다.</p>
+          <ul class="feature-list">
+            <li>아이 이름·상세주소 미수집</li>
+            <li>단독 정책결정 근거 아님 (조기 수요 신호)</li>
+            <li>민원 발생 전 단계의 신호 파악</li>
+          </ul>
+          <button class="btn link" onclick="document.querySelector('.tab[data-tab=dashboard]').click()">대시보드 보기 →</button>
+        </article>
+      </div>
+
+      <div class="info-box">
+        <h3>이 서비스는 무엇이 아닌가</h3>
+        <ul>
+          <li>세종엔·기관 홈페이지를 <strong>대체하지 않습니다.</strong> 공식 페이지로 연결합니다.</li>
+          <li>새로운 시설 정보를 대량 생산하지 않습니다. 기존 공공정보를 시민 조건에 맞게 <strong>연결</strong>합니다.</li>
+          <li>실시간 예약·실시간 혼잡도·개인 간 돌봄 매칭·의료 판단은 <strong>초기 범위에서 제외</strong>합니다.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ===== 외출 추천 ===== -->
+    <section id="recommend" class="page">
+      <header class="page-head">
+        <h2>AI 오늘의 영유아 외출·돌봄 추천</h2>
+        <p class="muted">자연어로 물어보거나 조건을 직접 선택해 주세요. AI가 월령·날씨·유모차·수유 조건을 종합해 점수화합니다.</p>
+      </header>
+
+      <div class="form-card">
+        <label class="field">
+          <span class="field-label">자연어로 물어보기 (선택)</span>
+          <textarea id="recommend-text" rows="2" placeholder="예: 8개월 쌍둥이와 오늘 오후에 갈 만한 곳을 추천해줘. 비가 오고 쌍둥이 유모차를 써야 하며, 수유실이 있으면 좋겠어."></textarea>
+        </label>
+
+        <div class="examples">
+          <span class="muted">예시:</span>
+          <button class="example-btn" data-example="8개월 쌍둥이와 비 오는 날 갈 수 있는 실내 공간 추천해줘. 쌍둥이 유모차를 써야 하고 수유실이 있으면 좋겠어.">8개월 쌍둥이 + 우천</button>
+          <button class="example-btn" data-example="18개월 아기와 고운동에서 무료로 이용할 수 있는 실내 공간 알려줘.">18개월 + 고운동</button>
+          <button class="example-btn" data-example="24개월 아이와 폭염에 갈 만한 실내 시설 있을까">24개월 + 폭염</button>
+        </div>
+
+        <div class="form-grid">
+          <label class="field">
+            <span class="field-label">월령 (개월)</span>
+            <input type="number" id="recommend-age" min="0" max="36" placeholder="예: 12">
+          </label>
+          <label class="field">
+            <span class="field-label">생활권</span>
+            <select id="recommend-district"><option value="">전체</option></select>
+          </label>
+          <label class="field">
+            <span class="field-label">유모차</span>
+            <select id="recommend-stroller">
+              <option value="">없음</option>
+              <option value="regular">일반 유모차</option>
+              <option value="twin">쌍둥이/광폭 유모차</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label">오늘 날씨</span>
+            <select id="recommend-weather">
+              <option value="">일반</option>
+              <option value="rain">우천</option>
+              <option value="heat">폭염</option>
+              <option value="cold">한파</option>
+              <option value="dust">미세먼지 나쁨</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="check-row">
+          <label class="check"><input type="checkbox" id="recommend-nursing"> 수유실 필요</label>
+          <label class="check"><input type="checkbox" id="recommend-diaper"> 기저귀 교환대 필요</label>
+          <label class="check"><input type="checkbox" id="recommend-free"> 무료 시설만</label>
+          <label class="check"><input type="checkbox" id="recommend-indoor"> 실내 선호</label>
+        </div>
+
+        <button id="recommend-btn" class="btn primary lg">AI 추천 받기</button>
+      </div>
+
+      <div id="recommend-results" class="results"></div>
+    </section>
+
+    <!-- ===== AI 질문 ===== -->
+    <section id="ask" class="page">
+      <header class="page-head">
+        <h2>공식정보 연결형 AI 질의응답</h2>
+        <p class="muted">육아 질문을 입력하면 AI가 영역을 분류해 보건소·육아종합지원센터·예방접종도우미 등 공식 정보로 연결합니다. AI는 진단하지 않습니다.</p>
+      </header>
+
+      <div class="form-card">
+        <label class="field">
+          <span class="field-label">무엇이 궁금하신가요?</span>
+          <textarea id="ask-input" rows="2" placeholder="예: 9개월 아기가 열이 나요. 어떻게 해야 하나요?"></textarea>
+        </label>
+        <div class="examples">
+          <span class="muted">예시:</span>
+          <button class="example-q" data-q="9개월 아기가 열이 나요">9개월 발열</button>
+          <button class="example-q" data-q="시간제보육 어떻게 신청하나요">시간제보육</button>
+          <button class="example-q" data-q="DTaP 예방접종 일정 알려주세요">예방접종</button>
+          <button class="example-q" data-q="13개월인데 아직 안 걸어요">발달 질문</button>
+          <button class="example-q" data-q="아이랑 갈 만한 곳 추천해줘">외출 추천</button>
+        </div>
+        <button id="ask-btn" class="btn primary lg">AI 분류 + 공식정보 연결</button>
+      </div>
+
+      <div id="ask-result" class="results"></div>
+    </section>
+
+    <!-- ===== 행정 대시보드 ===== -->
+    <section id="dashboard" class="page">
+      <header class="page-head">
+        <h2>영유아 수요 행정 대시보드</h2>
+        <p class="muted">시민의 검색·클릭·대체검색을 비식별 통계로 집계합니다. (개인정보·정확 위치 미수집)</p>
+      </header>
+      <div id="dashboard-content"></div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <div class="container">
+      <p><strong>아이랑 세종 AI</strong> · 제1회 세종특별자치시 AI 혁신 경진대회 트랙2 출품 프로토타입</p>
+      <p class="muted">본 프로토타입은 시연용 모의 데이터를 사용합니다. 실제 운영 시에는 월 1회 담당부서 확인 후 갱신하며, 운영시간·예약·휴관 등 변동 정보는 공식 페이지로 최종 안내합니다.</p>
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
