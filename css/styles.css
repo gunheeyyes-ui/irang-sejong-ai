@@ -657,7 +657,8 @@ textarea:focus, input:focus, select:focus {
 
 @media (max-width: 900px) {
   .header-row { flex-direction: column; align-items: flex-start; }
-  .tabs { width: 100%; overflow-x: auto; }
+  .tabs { width: 100%; }
+  .tab { flex: 1 1 auto; text-align: center; }
   .hero-title { font-size: 26px; }
   .hero { padding: 36px 20px; }
   .stats { grid-template-columns: repeat(2, 1fr); }
@@ -669,9 +670,18 @@ textarea:focus, input:focus, select:focus {
 }
 
 @media (max-width: 520px) {
+  /* iOS Safari가 입력란 탭 시 화면을 자동 확대하지 않도록 16px 유지 */
+  textarea, input[type="number"], input[type="text"], select { font-size: 16px; }
   .form-grid { grid-template-columns: 1fr; }
   .stats { grid-template-columns: 1fr 1fr; }
   .kv { grid-template-columns: 80px 1fr; }
   .card-head { padding-right: 0; flex-direction: column; align-items: flex-start; }
   .ribbon { position: static; align-self: flex-start; margin-bottom: 8px; }
+  /* 탭: 좁은 화면에서 균등한 2×2 배치 */
+  .tab { flex: 1 1 calc(50% - 4px); }
+  /* 대시보드 헤더: 안내문구는 한 줄 전체 폭, 버튼은 아래 줄로 */
+  .dash-head .muted { flex-basis: 100%; }
+  .dash-head .btn { flex: 1 1 auto; }
+  /* 가로 스크롤 방지: 막대그래프 라벨 칸 축소 */
+  .bar-row { grid-template-columns: 84px 1fr 36px; }
 }
