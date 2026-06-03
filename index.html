@@ -122,9 +122,18 @@
       </header>
 
       <div class="form-card">
+        <div id="weather-banner" class="weather-banner loading">
+          <span class="wb-icon">📍</span>
+          <div class="wb-body">
+            <strong>오늘 세종 날씨 · 미세먼지 (자동)</strong>
+            <span class="wb-detail">실시간 정보를 불러오는 중…</span>
+          </div>
+          <button type="button" id="weather-refresh" class="btn ghost small">새로고침</button>
+        </div>
+
         <label class="field">
           <span class="field-label">자연어로 물어보기 (선택)</span>
-          <textarea id="recommend-text" rows="2" placeholder="예: 8개월 쌍둥이와 오늘 오후에 갈 만한 곳을 추천해줘. 비가 오고 쌍둥이 유모차를 써야 하며, 수유실이 있으면 좋겠어."></textarea>
+          <textarea id="recommend-text" rows="2" placeholder="예: 8개월 쌍둥이와 오늘 오후에 갈 만한 곳을 추천해줘. 쌍둥이 유모차를 써야 하며, 수유실이 있으면 좋겠어. (날씨·미세먼지는 자동 반영)"></textarea>
         </label>
 
         <div class="examples">
@@ -152,23 +161,44 @@
             </select>
           </label>
           <label class="field">
-            <span class="field-label">오늘 날씨</span>
-            <select id="recommend-weather">
-              <option value="">일반</option>
-              <option value="rain">우천</option>
-              <option value="heat">폭염</option>
-              <option value="cold">한파</option>
-              <option value="dust">미세먼지 나쁨</option>
+            <span class="field-label">방문 요일</span>
+            <select id="recommend-day">
+              <option value="">오늘</option>
+              <option value="1">월요일</option>
+              <option value="2">화요일</option>
+              <option value="3">수요일</option>
+              <option value="4">목요일</option>
+              <option value="5">금요일</option>
+              <option value="6">토요일</option>
+              <option value="0">일요일</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label">방문 시간대</span>
+            <select id="recommend-time">
+              <option value="">지금</option>
+              <option value="morning">오전 (09~12시)</option>
+              <option value="afternoon">오후 (12~17시)</option>
+              <option value="evening">저녁 (17~21시)</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label">비용</span>
+            <select id="recommend-cost">
+              <option value="">유료도 가능</option>
+              <option value="free">무료만</option>
             </select>
           </label>
         </div>
 
-        <div class="check-row">
-          <label class="check"><input type="checkbox" id="recommend-nursing"> 수유실 필요</label>
-          <label class="check"><input type="checkbox" id="recommend-diaper"> 기저귀 교환대 필요</label>
-          <label class="check"><input type="checkbox" id="recommend-free"> 무료 시설만</label>
-          <label class="check"><input type="checkbox" id="recommend-indoor"> 실내 선호</label>
-        </div>
+        <fieldset class="check-group">
+          <legend class="field-label">편의 조건</legend>
+          <div class="check-row">
+            <label class="check"><input type="checkbox" id="recommend-nursing"> 수유실 필요</label>
+            <label class="check"><input type="checkbox" id="recommend-diaper"> 기저귀 교환대 필요</label>
+            <label class="check"><input type="checkbox" id="recommend-indoor"> 실내 선호</label>
+          </div>
+        </fieldset>
 
         <button id="recommend-btn" class="btn primary lg">AI 추천 받기</button>
       </div>

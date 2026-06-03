@@ -43,6 +43,128 @@ function el(tag, attrs = {}, children = []) {
 }
 
 // ============================================================
+// 0-1. 자동 환경 판단 (날씨 · 미세먼지) — Open-Meteo (API 키 불필요)
+// ============================================================
+
+const SEJONG_COORDS = { lat: 36.4801, lon: 127.2890 }; // 세종시 중심부
+
+// 실시간 자동 환경 상태 (전역)
+const AUTO_ENV = {
+  loaded: false, ok: false,
+  weather: null,   // "rain" | "heat" | "cold" | null(쾌적)
+  dustBad: false,  // 미세먼지 나쁨 이상 여부
+  temp: null, pm25: null, pm10: null, dustGrade: 0,
+  wlabel: "정보 없음",
+  summary: "실시간 정보를 불러오는 중…",
+};
+
+// Open-Meteo weather_code 중 강수/강설 코드
+const RAIN_CODES = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99];
+const SNOW_CODES = [71, 73, 75, 77, 85, 86];
+const DUST_LABELS = ["좋음", "보통", "나쁨", "매우 나쁨"];
+
+// 한국 환경부 기준 미세먼지 등급(0:좋음 ~ 3:매우나쁨), 둘 중 나쁜 값 채택
+function classifyDust(pm25, pm10) {
+  const g25 = pm25 == null ? 0 : pm25 <= 15 ? 0 : pm25 <= 35 ? 1 : pm25 <= 75 ? 2 : 3;
+  const g10 = pm10 == null ? 0 : pm10 <= 30 ? 0 : pm10 <= 80 ? 1 : pm10 <= 150 ? 2 : 3;
+  return Math.max(g25, g10);
+}
+
+async function fetchAutoEnv() {
+  const banner = document.querySelector("#weather-banner");
+  if (banner) banner.classList.add("loading");
+  try {
+    const fcUrl = `https://api.open-meteo.com/v1/forecast?latitude=${SEJONG_COORDS.lat}&longitude=${SEJONG_COORDS.lon}&current=temperature_2m,precipitation,weather_code&timezone=Asia%2FSeoul`;
+    const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${SEJONG_COORDS.lat}&longitude=${SEJONG_COORDS.lon}&current=pm10,pm2_5&timezone=Asia%2FSeoul`;
+    const [fcRes, aqRes] = await Promise.all([fetch(fcUrl), fetch(aqUrl)]);
+    const fc = await fcRes.json();
+    const aq = await aqRes.json();
+
+    const temp = fc.current.temperature_2m;
+    const precip = fc.current.precipitation;
+    const code = fc.current.weather_code;
+    const pm25 = aq.current.pm2_5;
+    const pm10 = aq.current.pm10;
+
+    let weather = null, wlabel = "맑음·쾌적";
+    if (precip > 0 || RAIN_CODES.includes(code)) { weather = "rain"; wlabel = "비"; }
+    else if (SNOW_CODES.includes(code)) { weather = "rain"; wlabel = "눈"; }
+    else if (temp >= 31) { weather = "heat"; wlabel = "폭염"; }
+    else if (temp <= 0) { weather = "cold"; wlabel = "한파"; }
+
+    const dg = classifyDust(pm25, pm10);
+    Object.assign(AUTO_ENV, {
+      loaded: true, ok: true, weather, dustBad: dg >= 2,
+      temp, pm25, pm10, dustGrade: dg, wlabel,
+      summary: `${wlabel} · 기온 ${Math.round(temp)}℃ · 미세먼지 ${DUST_LABELS[dg]}`,
+    });
+  } catch (e) {
+    Object.assign(AUTO_ENV, {
+      loaded: true, ok: false, weather: null, dustBad: false,
+      summary: "날씨 정보를 불러오지 못해 '쾌적' 기준으로 추천합니다.",
+    });
+  }
+  renderWeatherBanner();
+  return AUTO_ENV;
+}
+
+function envIcon() {
+  if (!AUTO_ENV.ok) return "⚠️";
+  if (AUTO_ENV.weather === "rain") return "🌧️";
+  if (AUTO_ENV.weather === "heat") return "🔥";
+  if (AUTO_ENV.weather === "cold") return "❄️";
+  if (AUTO_ENV.dustBad) return "😷";
+  return "☀️";
+}
+
+function renderWeatherBanner() {
+  const banner = document.querySelector("#weather-banner");
+  if (!banner) return;
+  banner.classList.remove("loading");
+  const detail = banner.querySelector(".wb-detail");
+  const icon = banner.querySelector(".wb-icon");
+  if (detail) detail.textContent = AUTO_ENV.summary;
+  if (icon) icon.textContent = envIcon();
+  banner.classList.toggle("alert", AUTO_ENV.ok && (!!AUTO_ENV.weather || AUTO_ENV.dustBad));
+}
+
+// ============================================================
+// 0-2. 요일 · 시간대 · 운영시간 헬퍼
+// ============================================================
+
+const DAY_NAMES = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+
+// daySel: "" (오늘) | "0".."6"
+function resolveDay(daySel) {
+  const isToday = (daySel === "" || daySel == null);
+  const idx = isToday ? new Date().getDay() : parseInt(daySel, 10);
+  return { idx, name: DAY_NAMES[idx], isWeekend: idx === 0 || idx === 6, isToday };
+}
+
+// 운영시간 문자열 파싱: "09:00-18:00" | "상시" | "휴무"
+function parseHoursStr(str) {
+  if (!str) return { unknown: true };
+  if (str.includes("상시")) return { always: true };
+  if (str.includes("휴무")) return { closed: true };
+  const m = str.match(/(\d{1,2}):(\d{2})\s*[-~]\s*(\d{1,2}):(\d{2})/);
+  if (!m) return { unknown: true };
+  return { open: (+m[1]) + (+m[2]) / 60, close: (+m[3]) + (+m[4]) / 60 };
+}
+
+// 시간대 → 대표 시각(소수 시간)
+function slotHour(slot) {
+  if (slot === "morning") return 10.5;
+  if (slot === "afternoon") return 14.5;
+  if (slot === "evening") return 18.5;
+  const d = new Date();
+  return d.getHours() + d.getMinutes() / 60;
+}
+
+function slotLabel(slot) {
+  return { morning: "오전", afternoon: "오후", evening: "저녁" }[slot] || "지금";
+}
+
+// ============================================================
 // 1. 탭 라우팅
 // ============================================================
 
@@ -85,11 +207,13 @@ function parseFreeText(text) {
   // 기저귀
   if (/기저귀/.test(t)) conditions.needDiaper = true;
 
-  // 날씨
-  if (/비\s*오|우천|비\s*와|비가/.test(t)) conditions.weather = "rain";
-  else if (/폭염|더위|뜨거|한낮/.test(t)) conditions.weather = "heat";
-  else if (/추위|영하|한파/.test(t)) conditions.weather = "cold";
-  else if (/미세먼지|황사/.test(t)) conditions.weather = "dust";
+  // 날씨 (자연어에 명시되면 자동값보다 우선)
+  if (/비\s*오|우천|비\s*와|비가|장마/.test(t)) conditions.weather = "rain";
+  else if (/폭염|더위|뜨거|한낮|무더/.test(t)) conditions.weather = "heat";
+  else if (/추위|영하|한파|눈\s*오|눈\s*와/.test(t)) conditions.weather = "cold";
+
+  // 미세먼지 (날씨와 별도 플래그)
+  if (/미세먼지|황사|초미세/.test(t)) conditions.dustBad = true;
 
   // 실내/실외 선호
   if (/실내/.test(t)) conditions.preferIndoor = true;
@@ -156,37 +280,64 @@ function scoreFacility(facility, cond) {
   if (facility.parking.indoor) score += 5;
   if (facility.parking.indoor) reasons.push({ type: "ok", text: "실내 주차 가능" });
 
-  // (4) 혼잡도 (max 10) - 주말/평일 추정
-  const isWeekend = [0, 6].includes(new Date().getDay());
-  const crowd = isWeekend ? facility.crowdedness.weekend : facility.crowdedness.weekday;
-  if (crowd === "low") score += 10;
-  else if (crowd === "mid") score += 6;
-  else if (crowd === "high") score += 2;
-  if (crowd === "low") reasons.push({ type: "ok", text: "현재 비교적 한산" });
-  if (crowd === "high") reasons.push({ type: "info", text: "주말·시간대에 따라 혼잡 가능" });
+  // 선택한 요일 기준
+  const day = resolveDay(cond.day);
+
+  // (4) 혼잡도 (max 10) - 선택 요일 기준
+  let crowd = day.isWeekend ? facility.crowdedness.weekend : facility.crowdedness.weekday;
+  if (crowd === "n/a") crowd = "mid";
+  if (crowd === "low") { score += 10; reasons.push({ type: "ok", text: `${day.name} 비교적 한산` }); }
+  else if (crowd === "mid") { score += 6; }
+  else if (crowd === "high") { score += 2; reasons.push({ type: "info", text: `${day.name}·시간대에 따라 혼잡 가능` }); }
 
   // (5) 비용 (max 5)
-  if (facility.cost.free) score += 5;
-  if (cond.freeOnly && !facility.cost.free) {
+  if (facility.cost.free) { score += 5; reasons.push({ type: "ok", text: "무료" }); }
+  if (cond.costPref === "free" && !facility.cost.free) {
     hardFail = true;
     reasons.push({ type: "warn", text: "유료 시설 (무료만 원함)" });
   }
-  if (facility.cost.free) reasons.push({ type: "ok", text: "무료" });
 
-  // (6) 운영시간 (max 10) - 오늘 열려있는지 간단 추정
-  const todayName = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"][new Date().getDay()];
-  const closedToday = facility.closedDays.some(d => d.includes(todayName));
-  if (!closedToday) score += 10;
-  else { hardFail = true; reasons.push({ type: "warn", text: `오늘(${todayName}) 휴관` }); }
-
-  // (7) 환경 적합도 (max 15) - 날씨
-  if (cond.weather) {
-    const adapt = facility.weatherAdapt[cond.weather];
-    if (adapt === "good") { score += 15; reasons.push({ type: "ok", text: `${weatherLabel(cond.weather)}에 적합 (실내·쾌적)` }); }
-    else if (adapt === "fair") { score += 8; reasons.push({ type: "info", text: `${weatherLabel(cond.weather)}에 일부 적합` }); }
-    else { score += 0; reasons.push({ type: "warn", text: `${weatherLabel(cond.weather)}에는 비추천` }); }
+  // (6) 운영시간 (max 10) - 선택 요일 휴관 + 시간대 운영 여부
+  const closedThatDay = facility.closedDays.some(d => d.includes(day.name));
+  const hoursStr = day.isWeekend ? facility.hours.weekend : facility.hours.weekday;
+  const ph = parseHoursStr(hoursStr);
+  if (closedThatDay || ph.closed) {
+    hardFail = true;
+    reasons.push({ type: "warn", text: `${day.name} 휴관` });
+  } else if (ph.always) {
+    score += 10;
+    reasons.push({ type: "ok", text: "상시 개방" });
+  } else if (ph.unknown) {
+    score += 6;
   } else {
-    score += 8; // 날씨 미지정 시 중간값
+    const reqH = slotHour(cond.timeSlot);
+    if (reqH < ph.open || reqH >= ph.close) {
+      hardFail = true;
+      reasons.push({ type: "warn", text: `${slotLabel(cond.timeSlot)}에는 운영시간(${hoursStr}) 밖` });
+    } else {
+      score += 10;
+      reasons.push({ type: "ok", text: `${slotLabel(cond.timeSlot)} 운영 중 (${hoursStr})` });
+    }
+  }
+
+  // (7) 환경 적합도 (max 15) - 자동 판단된 날씨 + 미세먼지 동시 반영
+  const envFactors = [];
+  if (cond.weather) envFactors.push({ key: cond.weather, label: weatherLabel(cond.weather) });
+  if (cond.dustBad) envFactors.push({ key: "dust", label: "미세먼지 나쁨" });
+  if (envFactors.length > 0) {
+    // 가장 불리한 적합도를 기준으로 평가
+    let worst = "good";
+    envFactors.forEach(f => {
+      const a = facility.weatherAdapt[f.key] || "good";
+      if (a === "poor") worst = "poor";
+      else if (a === "fair" && worst !== "poor") worst = "fair";
+    });
+    const labels = envFactors.map(f => f.label).join("·");
+    if (worst === "good") { score += 15; reasons.push({ type: "ok", text: `${labels} 상황에도 적합 (실내·쾌적)` }); }
+    else if (worst === "fair") { score += 8; reasons.push({ type: "info", text: `${labels} 시 일부만 적합` }); }
+    else { reasons.push({ type: "warn", text: `${labels} 시 비추천 (야외)` }); }
+  } else {
+    score += 12; // 쾌적한 날
   }
   if (cond.preferIndoor === true && !facility.indoor) {
     hardFail = true;
@@ -220,24 +371,31 @@ function runRecommendation() {
   const ageInput = $("#recommend-age").value;
   const districtInput = $("#recommend-district").value;
   const strollerInput = $("#recommend-stroller").value;
-  const weatherInput = $("#recommend-weather").value;
+  const daySel = $("#recommend-day").value;
+  const timeSel = $("#recommend-time").value;
+  const costSel = $("#recommend-cost").value;
   const needNursing = $("#recommend-nursing").checked;
   const needDiaper = $("#recommend-diaper").checked;
-  const freeOnly = $("#recommend-free").checked;
   const preferIndoor = $("#recommend-indoor").checked;
 
   // 1) 자연어 텍스트 우선 파싱
   const parsed = parseFreeText(text);
-  // 2) 폼 입력값으로 덮어쓰기
+  // 2) 폼 입력값 + 자동 환경(날씨·미세먼지)으로 종합
   const cond = {
     ...parsed,
     ageMonths: ageInput ? parseInt(ageInput, 10) : parsed.ageMonths,
     district: districtInput || parsed.district,
     stroller: strollerInput || parsed.stroller,
-    weather: weatherInput || parsed.weather,
+    // 날씨·미세먼지: 자연어에 명시 없으면 자동 판단값 사용
+    weather: parsed.weather || AUTO_ENV.weather || null,
+    dustBad: parsed.dustBad || AUTO_ENV.dustBad || false,
+    weatherAuto: !parsed.weather && !!AUTO_ENV.weather,
+    dustAuto: !parsed.dustBad && AUTO_ENV.dustBad,
+    day: daySel,
+    timeSlot: timeSel,
+    costPref: costSel,
     needNursing: needNursing || parsed.needNursing,
     needDiaper: needDiaper || parsed.needDiaper,
-    freeOnly: freeOnly || parsed.freeOnly,
     preferIndoor: preferIndoor ? true : parsed.preferIndoor,
   };
 
@@ -247,6 +405,10 @@ function runRecommendation() {
     district: cond.district || "전체",
     ageBucket: bucketAge(cond.ageMonths),
     weather: cond.weather || null,
+    dustBad: !!cond.dustBad,
+    day: resolveDay(cond.day).name,
+    timeSlot: slotLabel(cond.timeSlot),
+    costPref: cond.costPref || "any",
     needNursing: !!cond.needNursing,
     needTwinStroller: cond.stroller === "twin",
   });
@@ -296,13 +458,13 @@ function renderRecommendResults(top, alt, cond) {
   if (top.length === 0) {
     root.appendChild(el("div", { class: "empty" }, "조건에 정확히 맞는 시설을 찾지 못했습니다. 조건을 일부 완화하여 다시 검색해 보세요."));
   } else {
-    root.appendChild(el("h3", { class: "section-title" }, `오늘 추천 장소 (${top.length}곳)`));
-    top.forEach((r, i) => root.appendChild(renderCard(r, i + 1, false)));
+    root.appendChild(el("h3", { class: "section-title" }, `추천 장소 (${top.length}곳)`));
+    top.forEach((r, i) => root.appendChild(renderCard(r, i + 1, false, cond)));
   }
 
   if (alt.length > 0) {
     root.appendChild(el("h3", { class: "section-title alt" }, "조건 조정 시 대체 가능"));
-    alt.forEach((r, i) => root.appendChild(renderCard(r, i + 1, true)));
+    alt.forEach((r, i) => root.appendChild(renderCard(r, i + 1, true, cond)));
   }
 
   // 안내 문구
@@ -316,17 +478,19 @@ function conditionsToText(c) {
   const parts = [];
   if (c.ageMonths != null) parts.push(`${c.ageMonths}개월`);
   if (c.district) parts.push(c.district);
+  parts.push(`${resolveDay(c.day).name} ${slotLabel(c.timeSlot)}`);
   if (c.stroller === "twin") parts.push("쌍둥이 유모차");
   else if (c.stroller === "regular") parts.push("일반 유모차");
-  if (c.weather) parts.push(weatherLabel(c.weather));
+  if (c.weather) parts.push(weatherLabel(c.weather) + (c.weatherAuto ? "(자동)" : ""));
+  if (c.dustBad) parts.push("미세먼지 나쁨" + (c.dustAuto ? "(자동)" : ""));
   if (c.preferIndoor === true) parts.push("실내 선호");
   if (c.needNursing) parts.push("수유실 필요");
   if (c.needDiaper) parts.push("기저귀 교환대 필요");
-  if (c.freeOnly) parts.push("무료만");
-  return parts.length > 0 ? parts.join(" · ") : "조건이 입력되지 않아 기본값으로 추천합니다.";
+  if (c.costPref === "free") parts.push("무료만");
+  return parts.join(" · ");
 }
 
-function renderCard(r, rank, isAlt) {
+function renderCard(r, rank, isAlt, cond = {}) {
   const f = r.facility;
   const reasonChips = r.reasons.slice(0, 6).map(rs =>
     el("span", { class: `chip ${rs.type}` }, rs.text)
@@ -336,9 +500,8 @@ function renderCard(r, rank, isAlt) {
     ? el("span", { class: "badge managed" }, "세종시 관리")
     : el("span", { class: "badge external" }, "공식 페이지 연결");
 
-  const todayName = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"][new Date().getDay()];
-  const isWeekend = [0, 6].includes(new Date().getDay());
-  const hour = isWeekend ? f.hours.weekend : f.hours.weekday;
+  const day = resolveDay(cond.day);
+  const hour = day.isWeekend ? f.hours.weekend : f.hours.weekday;
 
   return el("article", { class: `card ${isAlt ? "alt" : ""}` }, [
     ribbon,
@@ -350,7 +513,7 @@ function renderCard(r, rank, isAlt) {
     el("p", { class: "desc" }, f.description),
     el("div", { class: "chips" }, reasonChips),
     el("dl", { class: "kv" }, [
-      el("dt", {}, "오늘 운영"), el("dd", {}, `${todayName} ${hour}`),
+      el("dt", {}, `${day.name} 운영`), el("dd", {}, `${hour}`),
       el("dt", {}, "예약"), el("dd", {}, f.reservation ? "필요" : "불필요"),
       el("dt", {}, "비용"), el("dd", {}, f.cost.free ? "무료" : (f.cost.fee || "유료")),
       el("dt", {}, "주소"), el("dd", {}, f.address),
@@ -670,6 +833,11 @@ function init() {
   // 이벤트 바인딩
   $("#recommend-btn").addEventListener("click", runRecommendation);
   $("#ask-btn").addEventListener("click", handleAsk);
+
+  // 자동 날씨·미세먼지 조회 + 새로고침 버튼
+  fetchAutoEnv();
+  const wRefresh = $("#weather-refresh");
+  if (wRefresh) wRefresh.addEventListener("click", fetchAutoEnv);
   $("#ask-input").addEventListener("keydown", e => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleAsk();
   });

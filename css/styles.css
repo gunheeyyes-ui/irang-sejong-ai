@@ -306,6 +306,28 @@ textarea:focus, input:focus, select:focus {
 }
 .check input { accent-color: var(--brand); width: 16px; height: 16px; }
 
+/* 편의 조건 그룹 */
+.check-group { border: none; padding: 0; margin: 0 0 8px; }
+.check-group legend { padding: 0; margin-bottom: 8px; }
+
+/* 자동 날씨·미세먼지 배너 */
+.weather-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #eef6ff;
+  border: 1px solid #cfe4ff;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+}
+.weather-banner.alert { background: #fff4ed; border-color: #ffd4bf; }
+.weather-banner.loading { opacity: 0.7; }
+.weather-banner .wb-icon { font-size: 26px; line-height: 1; }
+.weather-banner .wb-body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.weather-banner .wb-body strong { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+.weather-banner .wb-detail { font-size: 15px; color: var(--text); font-weight: 700; }
+
 .examples {
   display: flex;
   flex-wrap: wrap;
@@ -682,6 +704,9 @@ textarea:focus, input:focus, select:focus {
   /* 대시보드 헤더: 안내문구는 한 줄 전체 폭, 버튼은 아래 줄로 */
   .dash-head .muted { flex-basis: 100%; }
   .dash-head .btn { flex: 1 1 auto; }
+  /* 날씨 배너: 좁은 화면에서 새로고침 버튼 줄바꿈 */
+  .weather-banner { flex-wrap: wrap; }
+  .weather-banner #weather-refresh { flex: 1 1 100%; }
   /* 가로 스크롤 방지: 막대그래프 라벨 칸 축소 */
   .bar-row { grid-template-columns: 84px 1fr 36px; }
 }
