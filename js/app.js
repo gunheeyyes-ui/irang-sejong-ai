@@ -196,14 +196,12 @@ function activateTab(name) {
   }
 }
 
-// 외출 추천 데모 입력값 채우고 실행
+// 외출 추천 데모 입력값 채우고 실행 (실내·야외가 골고루 보이도록 중립 조건)
 function runRecommendDemo() {
-  $("#recommend-text").value = "8개월 쌍둥이와 갈 만한 곳을 추천해줘. 쌍둥이 유모차를 써야 하고 수유실이 있으면 좋겠어.";
-  $("#recommend-age").value = "8";
-  $("#recommend-stroller").value = "twin";
+  $("#recommend-text").value = "15개월 아이랑 오늘 오후에 갈 만한 곳 추천해줘.";
+  $("#recommend-age").value = "15";
+  $("#recommend-stroller").value = "regular";
   $("#recommend-time").value = "afternoon";
-  $("#recommend-nursing").checked = true;
-  $("#recommend-indoor").checked = true;
   runRecommendation();
 }
 
@@ -466,13 +464,22 @@ function runRecommendation() {
     });
   }
 
-  // 카테고리 다양화: 같은 유형 중복 방지 (복합커뮤니티센터는 1곳까지만)
-  const top = diversify(pass, 3);
+  // 카테고리 다양화: 같은 유형 중복 방지 (복합커뮤니티센터는 1곳까지만) + 야외 보장
+  const top = diversify(pass, 3, cond);
   renderRecommendResults(top, alt.slice(0, 4), cond);
 }
 
+// 오늘 야외 활동이 적합한가 (실내 선호·우천·폭염·미세먼지 나쁨이 아니면 적합)
+function isOutdoorSuitable(cond) {
+  if (!cond) return true;
+  if (cond.preferIndoor) return false;
+  if (cond.weather === "rain" || cond.weather === "heat") return false;
+  if (cond.dustBad) return false;
+  return true;
+}
+
 // 추천 결과 다양화 — 서로 다른 시설 유형이 골고루 나오도록
-function diversify(sortedPass, n) {
+function diversify(sortedPass, n, cond) {
   const picked = [];
   const usedCats = new Set();
   // 1차: 점수 높은 순으로 서로 다른 카테고리에서 한 곳씩
@@ -492,6 +499,15 @@ function diversify(sortedPass, n) {
       picked.push(s);
     }
   }
+  // 3차: 오늘 야외가 적합한데 실내만 뽑혔다면, 한 자리를 가장 점수 높은 야외로 교체
+  if (isOutdoorSuitable(cond) && picked.length === n && !picked.some(p => !p.facility.indoor)) {
+    const bestOutdoor = sortedPass.find(s => !s.facility.indoor && !picked.includes(s));
+    if (bestOutdoor) {
+      picked.sort((a, b) => b.score - a.score);
+      picked[picked.length - 1] = bestOutdoor; // 가장 낮은 실내 추천을 야외로 교체
+    }
+  }
+  picked.sort((a, b) => b.score - a.score);
   return picked;
 }
 
@@ -522,6 +538,17 @@ function renderRecommendResults(top, alt, cond) {
   } else {
     root.appendChild(el("h3", { class: "section-title" }, `추천 장소 (${top.length}곳 · 서로 다른 유형)`));
     top.forEach((r, i) => root.appendChild(renderCard(r, i + 1, false, cond)));
+  }
+
+  // 야외가 오늘 조건 때문에 빠진 경우 이유 안내
+  if (top.length > 0 && !top.some(r => !r.facility.indoor) && !isOutdoorSuitable(cond)) {
+    let reason = "오늘 조건상";
+    if (cond.preferIndoor) reason = "‘실내 선호’를 선택하셔서";
+    else if (cond.weather === "rain") reason = "오늘 비가 와서";
+    else if (cond.weather === "heat") reason = "오늘 폭염으로";
+    else if (cond.dustBad) reason = "오늘 미세먼지가 나빠서";
+    root.appendChild(el("p", { class: "outdoor-note" },
+      `🌳 ${reason} 야외(공원·수목원)는 추천에서 제외했습니다. 날씨·미세먼지가 좋은 날에는 야외도 함께 추천됩니다.`));
   }
 
   // AI가 제외한 후보 (이유 표시) — 단순 검색과 차별화
