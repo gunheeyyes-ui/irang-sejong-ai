@@ -720,6 +720,31 @@ function extractAgeMonths(q) {
   return m ? parseInt(m[1], 10) : null;
 }
 
+// 질문에서 '필요 시점'(요일·날짜 + 시간대) 추출
+function extractWhen(q) {
+  const day = /오늘/.test(q) ? "오늘" : /내일/.test(q) ? "내일" : /모레/.test(q) ? "모레"
+    : /이번\s*주말|주말/.test(q) ? "주말" : "";
+  const part = /오전|아침/.test(q) ? "오전" : /오후/.test(q) ? "오후" : /저녁|밤/.test(q) ? "저녁" : "";
+  const s = [day, part].filter(Boolean).join(" ");
+  return s || null;
+}
+
+// 질문에서 '필요 시간'(이용 시간) 추출
+function extractDuration(q) {
+  const m = q.match(/(\d+)\s*시간/);
+  if (m) return m[1] + "시간";
+  if (/잠깐|잠시/.test(q)) return "잠시";
+  return null;
+}
+
+// 질문에서 생활권 추출
+function extractDistrict(q) {
+  for (const d of DISTRICTS) {
+    if (q.includes(d.replace("동", ""))) return d;
+  }
+  return null;
+}
+
 // 질문 내용에 맞는 위험신호 체크리스트 키 선택
 function pickChecklist(cat, q) {
   if (cat === "열") return "열";
@@ -756,19 +781,24 @@ function handleAsk() {
   const cat = classifyQuestion(q);
   const meta = QA_META[cat] || QA_META["기타"];
   const ageM = extractAgeMonths(q);
+  const when = extractWhen(q);
+  const duration = extractDuration(q);
+  const dist = extractDistrict(q);
 
   pushLog({ type: "ask", category: cat, urgency: meta.urgency, length: q.length });
 
   const root = $("#ask-result");
   root.innerHTML = "";
 
-  // 1단계) 질문 분석 결과 박스
-  const rows = [
-    ["월령", ageM != null ? `${ageM}개월` : "질문에 명시 없음"],
-    ["주제", meta.topic],
-    ["긴급도", meta.urgencyLabel],
-    ["AI 처리 원칙", meta.principle],
-  ];
+  // 1단계) 질문 분석 결과 박스 — 월령·생활권·시점·시간·주제·의도·긴급도·처리원칙 구조화
+  const rows = [["월령", ageM != null ? `${ageM}개월` : "질문에 명시 없음"]];
+  if (dist) rows.push(["생활권", dist]);
+  if (when) rows.push(["필요 시점", when]);
+  if (duration) rows.push(["필요 시간", duration]);
+  rows.push(["주제", meta.topic]);
+  if (meta.intent) rows.push(["이용자 의도", meta.intent]);
+  rows.push(["긴급도", meta.urgencyLabel]);
+  rows.push(["AI 처리 원칙", meta.principle]);
   root.appendChild(el("div", { class: "analysis-box" }, [
     el("div", { class: "analysis-head" }, [
       el("strong", {}, "AI 질문 분석 결과"),

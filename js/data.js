@@ -892,3 +892,19 @@ FACILITIES.forEach(f => {
   if (ex.highlight) f.highlight = ex.highlight;
   if (ex.description) f.description = ex.description;
 });
+
+// 질문 분류별 '이용자 의도' (기능② 질문 분석 결과 박스에서 사용)
+const QA_INTENT = {
+  응급: "위험 여부 확인 및 즉시 대응 경로 안내",
+  열: "발열 위험신호 확인 및 대응 안내",
+  예방접종: "접종 기록 확인 및 다음 행동 안내",
+  발달: "발달 상태 확인 및 공식 상담 경로 안내",
+  보육: "맡길 수 있는 곳·신청 방법 확인",
+  외출: "오늘 갈 수 있는 장소 추천",
+  프로그램: "참여 가능한 프로그램·신청 방법 확인",
+  건강: "증상 대응 방법 및 공식정보 확인",
+  기타: "관련 공식정보 확인",
+};
+Object.keys(QA_META).forEach(k => {
+  if (QA_INTENT[k]) QA_META[k].intent = QA_INTENT[k];
+});
