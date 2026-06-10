@@ -202,7 +202,8 @@ function runRecommendDemo() {
   $("#recommend-age").value = "15";
   $("#recommend-stroller").value = "regular";
   $("#recommend-time").value = "afternoon";
-  runRecommendation();
+  // 발표 데모는 '맑은 날·미세먼지 좋음' 기준으로 고정해 항상 실내+야외가 함께 노출되도록
+  runRecommendation({ ok: true, weather: null, dustBad: false });
 }
 
 function initTabs() {
@@ -397,7 +398,9 @@ function weatherLabel(w) {
 }
 
 // 추천 실행
-function runRecommendation() {
+function runRecommendation(envOverride) {
+  // 데모는 '맑은 날 기준' 등 환경을 강제할 수 있음. 일반 검색은 실시간 자동 환경(AUTO_ENV) 사용
+  const env = envOverride || AUTO_ENV;
   const text = $("#recommend-text").value;
   const ageInput = $("#recommend-age").value;
   const districtInput = $("#recommend-district").value;
@@ -418,10 +421,10 @@ function runRecommendation() {
     district: districtInput || parsed.district,
     stroller: strollerInput || parsed.stroller,
     // 날씨·미세먼지: 자연어에 명시 없으면 자동 판단값 사용
-    weather: parsed.weather || AUTO_ENV.weather || null,
-    dustBad: parsed.dustBad || AUTO_ENV.dustBad || false,
-    weatherAuto: !parsed.weather && !!AUTO_ENV.weather,
-    dustAuto: !parsed.dustBad && AUTO_ENV.dustBad,
+    weather: parsed.weather || env.weather || null,
+    dustBad: parsed.dustBad || env.dustBad || false,
+    weatherAuto: !parsed.weather && !!env.weather,
+    dustAuto: !parsed.dustBad && env.dustBad,
     day: daySel,
     timeSlot: timeSel,
     costPref: costSel,
@@ -1077,7 +1080,7 @@ function init() {
   DISTRICTS.forEach(d => dSel.appendChild(el("option", { value: d }, d)));
 
   // 이벤트 바인딩
-  $("#recommend-btn").addEventListener("click", runRecommendation);
+  $("#recommend-btn").addEventListener("click", () => runRecommendation());
   $("#ask-btn").addEventListener("click", handleAsk);
 
   // 자동 날씨·미세먼지 조회 + 새로고침 버튼
