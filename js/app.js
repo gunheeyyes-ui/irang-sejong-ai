@@ -127,12 +127,34 @@ function envIcon() {
 function renderWeatherBanner() {
   const banner = document.querySelector("#weather-banner");
   if (!banner) return;
-  banner.classList.remove("loading");
+  banner.classList.remove("loading", "demo");
   const detail = banner.querySelector(".wb-detail");
   const icon = banner.querySelector(".wb-icon");
+  const strongEl = banner.querySelector("strong");
+  if (strongEl) strongEl.textContent = "오늘 세종 날씨 · 미세먼지 (자동)";
   if (detail) detail.textContent = AUTO_ENV.summary;
   if (icon) icon.textContent = envIcon();
   banner.classList.toggle("alert", AUTO_ENV.ok && (!!AUTO_ENV.weather || AUTO_ENV.dustBad));
+}
+
+// 데모(맑은 날 기준) 동안 배너를 '예시' 상태로 표시 — 추천 결과와 일치시킴
+function renderDemoBanner() {
+  const banner = document.querySelector("#weather-banner");
+  if (!banner) return;
+  banner.classList.remove("loading", "alert");
+  banner.classList.add("demo");
+  const detail = banner.querySelector(".wb-detail");
+  const icon = banner.querySelector(".wb-icon");
+  const strongEl = banner.querySelector("strong");
+  if (icon) icon.textContent = "☀️";
+  if (strongEl) strongEl.textContent = "예시 화면 · 맑은 날 기준";
+  if (detail) detail.textContent = "맑음 · 미세먼지 좋음 기준의 예시입니다. 실제 날씨로 보려면 ‘새로고침’을 눌러주세요.";
+}
+
+// 배너를 실제 날씨 상태로 되돌림 (사용자가 직접 검색/새로고침할 때)
+function exitDemoBanner() {
+  const banner = document.querySelector("#weather-banner");
+  if (banner && banner.classList.contains("demo")) renderWeatherBanner();
 }
 
 // ============================================================
@@ -204,6 +226,8 @@ function runRecommendDemo() {
   $("#recommend-time").value = "afternoon";
   // 발표 데모는 '맑은 날·미세먼지 좋음' 기준으로 고정해 항상 실내+야외가 함께 노출되도록
   runRecommendation({ ok: true, weather: null, dustBad: false });
+  // 배너도 '맑은 날 기준 예시'로 맞춰 표시 (추천 결과와 일치)
+  renderDemoBanner();
 }
 
 function initTabs() {
@@ -1080,7 +1104,7 @@ function init() {
   DISTRICTS.forEach(d => dSel.appendChild(el("option", { value: d }, d)));
 
   // 이벤트 바인딩
-  $("#recommend-btn").addEventListener("click", () => runRecommendation());
+  $("#recommend-btn").addEventListener("click", () => { exitDemoBanner(); runRecommendation(); });
   $("#ask-btn").addEventListener("click", handleAsk);
 
   // 자동 날씨·미세먼지 조회 + 새로고침 버튼

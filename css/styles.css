@@ -373,6 +373,8 @@ textarea:focus, input:focus, select:focus {
   margin-bottom: 18px;
 }
 .weather-banner.alert { background: #fff4ed; border-color: #ffd4bf; }
+.weather-banner.demo { background: #fffaf0; border-color: #ffe2b0; }
+.weather-banner.demo .wb-body strong { color: var(--warn); }
 .weather-banner.loading { opacity: 0.7; }
 .weather-banner .wb-icon { font-size: 26px; line-height: 1; }
 .weather-banner .wb-body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
