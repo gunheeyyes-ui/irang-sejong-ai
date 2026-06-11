@@ -509,26 +509,31 @@ function isOutdoorSuitable(cond) {
 function diversify(sortedPass, n, cond) {
   const picked = [];
   const usedCats = new Set();
-  // 1차: 점수 높은 순으로 서로 다른 카테고리에서 한 곳씩
+  const usedAddr = new Set(); // 같은 건물(주소) 중복 추천 방지
+  // 1차: 점수 높은 순으로 서로 다른 카테고리 + 서로 다른 건물에서 한 곳씩
   for (const s of sortedPass) {
     if (picked.length >= n) break;
     if (usedCats.has(s.facility.category)) continue;
+    if (usedAddr.has(s.facility.address)) continue;
     picked.push(s);
     usedCats.add(s.facility.category);
+    usedAddr.add(s.facility.address);
   }
-  // 2차: 자리가 남으면 채우되 복합커뮤니티센터는 1곳까지만 허용
+  // 2차: 자리가 남으면 채우되 복합커뮤니티센터는 1곳까지만, 같은 건물 중복 방지
   if (picked.length < n) {
     for (const s of sortedPass) {
       if (picked.length >= n) break;
       if (picked.includes(s)) continue;
+      if (usedAddr.has(s.facility.address)) continue;
       const compCount = picked.filter(p => p.facility.category === "복합커뮤니티센터").length;
       if (s.facility.category === "복합커뮤니티센터" && compCount >= 1) continue;
       picked.push(s);
+      usedAddr.add(s.facility.address);
     }
   }
   // 3차: 오늘 야외가 적합한데 실내만 뽑혔다면, 한 자리를 가장 점수 높은 야외로 교체
   if (isOutdoorSuitable(cond) && picked.length === n && !picked.some(p => !p.facility.indoor)) {
-    const bestOutdoor = sortedPass.find(s => !s.facility.indoor && !picked.includes(s));
+    const bestOutdoor = sortedPass.find(s => !s.facility.indoor && !picked.includes(s) && !usedAddr.has(s.facility.address));
     if (bestOutdoor) {
       picked.sort((a, b) => b.score - a.score);
       picked[picked.length - 1] = bestOutdoor; // 가장 낮은 실내 추천을 야외로 교체
@@ -536,6 +541,17 @@ function diversify(sortedPass, n, cond) {
   }
   picked.sort((a, b) => b.score - a.score);
   return picked;
+}
+
+// 같은 건물(주소)에 함께 있는 다른 공공자원의 카테고리 목록
+function coLocatedCategories(facility) {
+  const cats = [];
+  FACILITIES.forEach(f => {
+    if (f.id === facility.id) return;
+    if (f.address !== facility.address) return;
+    if (!cats.includes(f.category)) cats.push(f.category);
+  });
+  return cats;
 }
 
 function bucketAge(m) {
@@ -654,6 +670,7 @@ function renderCard(r, rank, isAlt, cond = {}) {
   const day = resolveDay(cond.day);
   const hour = day.isWeekend ? f.hours.weekend : f.hours.weekday;
   const score = Math.min(100, Math.round(r.score));
+  const coLoc = coLocatedCategories(f);
 
   return el("article", { class: `card ${isAlt ? "alt" : ""}` }, [
     ribbon,
@@ -663,6 +680,7 @@ function renderCard(r, rank, isAlt, cond = {}) {
     ]),
     el("p", { class: "muted" }, `${f.category} · ${f.district}`),
     f.highlight ? el("p", { class: "highlight-tag" }, `★ ${f.highlight}`) : null,
+    coLoc.length ? el("p", { class: "colocate" }, `🏢 같은 건물에서 함께 이용: ${coLoc.join(" · ")}`) : null,
     el("div", { class: "score-line" }, [
       el("span", { class: "score-badge" }, `적합도 ${score}점`),
       el("div", { class: "score-track" }, [
