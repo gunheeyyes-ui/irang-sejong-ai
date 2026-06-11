@@ -5,7 +5,7 @@
  * 실제 운영 시에는 담당부서 확인 후 월 1회 갱신하며, 공식 페이지로 최종 안내합니다.
  */
 
-const DATA_UPDATED = "2026-05-15";
+const DATA_UPDATED = "2026-06-11";
 
 // 생활권 목록 (1단계 시범 대상)
 const DISTRICTS = [
