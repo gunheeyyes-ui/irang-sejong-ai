@@ -945,9 +945,11 @@ textarea:focus, input:focus, select:focus {
    ============================================================ */
 
 @media (max-width: 900px) {
-  .header-row { flex-direction: column; align-items: flex-start; }
-  .tabs { width: 100%; }
-  .tab { flex: 1 1 auto; text-align: center; }
+  .header-row { flex-direction: column; align-items: flex-start; gap: 12px; padding: 12px 16px; }
+  .brand-logo { width: 44px; height: 44px; font-size: 26px; border-radius: 12px; }
+  .brand-title { font-size: 18px; }
+  .tabs { width: 100%; gap: 4px; }
+  .tab { flex: 1 1 auto; text-align: center; padding: 9px 10px; font-size: 14px; }
   .hero-title { font-size: 26px; }
   .hero { padding: 36px 20px; }
   .stats { grid-template-columns: repeat(2, 1fr); }
@@ -967,8 +969,13 @@ textarea:focus, input:focus, select:focus {
   .kv { grid-template-columns: 80px 1fr; }
   .card-head { padding-right: 0; flex-direction: column; align-items: flex-start; }
   .ribbon { position: static; align-self: flex-start; margin-bottom: 8px; }
-  /* 탭: 좁은 화면에서 균등한 2×2 배치 */
-  .tab { flex: 1 1 calc(50% - 4px); }
+  /* 헤더: 모바일에서 상단 영역 슬림화 */
+  .header-row { padding: 10px 14px; gap: 10px; }
+  .brand-logo { width: 38px; height: 38px; font-size: 22px; border-radius: 10px; }
+  .brand-title { font-size: 16px; }
+  .brand-sub { display: none; }
+  /* 탭: 좁은 화면에서 균등한 2×2 배치 (간격·높이 축소) */
+  .tab { flex: 1 1 calc(50% - 4px); padding: 8px 8px; font-size: 13.5px; }
   /* 대시보드 헤더: 안내문구는 한 줄 전체 폭, 버튼은 아래 줄로 */
   .dash-head .muted { flex-basis: 100%; }
   .dash-head .btn { flex: 1 1 auto; }
