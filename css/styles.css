@@ -629,6 +629,119 @@ textarea:focus, input:focus, select:focus {
 .cta p { margin: 0 0 12px; color: var(--text); }
 
 /* ============================================================
+   기능 ② 액션카드 (세종 육아공공서비스 액션카드)
+   ============================================================ */
+.action-cards { margin-top: 8px; }
+.ac-lead {
+  margin: -4px 0 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--brand-dark);
+}
+.action-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.action-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--brand);
+  border-radius: var(--radius);
+  padding: 20px 18px 18px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.action-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.ac-num {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(255, 122, 89, 0.35);
+}
+.ac-title {
+  display: block;
+  margin: 12px 0 10px;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+.ac-title small {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.ac-list { margin: 0; padding: 0; list-style: none; }
+.ac-list li {
+  position: relative;
+  padding: 7px 0 7px 18px;
+  font-size: 14px;
+  color: var(--text);
+  border-top: 1px dashed var(--border);
+}
+.ac-list li:first-child { border-top: 0; }
+.ac-list li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 14px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+.ac-link { color: var(--accent-dark); font-weight: 700; }
+.ac-cta-btn {
+  margin-top: 4px;
+  padding: 8px 12px;
+  width: 100%;
+  border: 1px solid var(--brand);
+  border-radius: 10px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.ac-cta-btn:hover { background: var(--brand); color: #fff; }
+.safe-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--accent-soft);
+  border: 1px solid #c9efe9;
+  border-radius: var(--radius);
+}
+.safe-badge {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--accent-dark);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+.safe-note p { margin: 0; font-size: 13.5px; color: var(--text); }
+
+/* ============================================================
    Dashboard
    ============================================================ */
 
@@ -959,6 +1072,7 @@ textarea:focus, input:focus, select:focus {
   .metrics { grid-template-columns: 1fr; }
   .bar-row { grid-template-columns: 90px 1fr 40px; }
   .process-steps { grid-template-columns: 1fr; }
+  .action-card-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 520px) {

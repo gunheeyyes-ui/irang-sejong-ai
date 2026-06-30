@@ -213,7 +213,7 @@ function activateTab(name) {
   }
   if (name === "ask" && !demoAskDone && !$("#ask-result").hasChildNodes()) {
     demoAskDone = true;
-    $("#ask-input").value = "9개월 아기가 38.3도 열이 나는데 언제 병원에 가야 하나요?";
+    $("#ask-input").value = "내일 오전에 14개월 아기를 2시간 맡길 수 있는 시간제보육을 찾고 싶어요.";
     handleAsk();
   }
 }
@@ -793,6 +793,67 @@ function renderAskSteps(meta) {
   ]);
 }
 
+// 기능 ② 핵심 — 세종 육아공공서비스 액션카드
+// 같은 질문에 카드 3장으로: ① 되는지 ② 어디서 ③ 안 되면
+function renderActionCards(cat, q, info) {
+  const { ageM, when, duration, dist } = info;
+  const whenLine = [when, duration].filter(Boolean).join(" · ");
+
+  // ① 이용 가능성 (되는지)
+  const ageItem = ageM == null
+    ? "대상연령 6~36개월 — 월령 입력 시 자동 확인"
+    : (ageM >= 6 && ageM <= 36
+      ? `대상연령 충족 — ${ageM}개월 (시간제보육 6~36개월)`
+      : `대상연령 확인 필요 — ${ageM}개월`);
+  const card1 = el("div", { class: "action-card" }, [
+    el("span", { class: "ac-num" }, "1"),
+    el("strong", { class: "ac-title" }, ["이용 가능성 ", el("small", {}, "되는지")]),
+    el("ul", { class: "ac-list" }, [
+      el("li", {}, ageItem),
+      el("li", {}, whenLine ? `운영시간·예약 가능기간 (요청: ${whenLine})` : "운영시간 · 예약 가능기간 확인"),
+      el("li", {}, "비용 · 준비물(여벌옷·기저귀 등) 안내"),
+    ]),
+  ]);
+
+  // ② 세종 확인기관 (어디서)
+  const districtItem = dist
+    ? `내 생활권(${dist}) 제공기관 우선 안내`
+    : "내 생활권 제공기관 안내 (생활권 선택 시 우선 표시)";
+  const card2 = el("div", { class: "action-card" }, [
+    el("span", { class: "ac-num" }, "2"),
+    el("strong", { class: "ac-title" }, ["세종 확인기관 ", el("small", {}, "어디서")]),
+    el("ul", { class: "ac-list" }, [
+      el("li", {}, districtItem),
+      el("li", {}, [el("a", { class: "ac-link", href: "https://sejong.childcare.go.kr/", target: "_blank", rel: "noopener" }, "세종시 육아종합지원센터 →")]),
+      el("li", {}, [el("a", { class: "ac-link", href: "https://www.childcare.go.kr/", target: "_blank", rel: "noopener" }, "공식 신청 · 아이사랑 바로가기 →")]),
+    ]),
+  ]);
+
+  // ③ 대체 선택지 (안 되면)
+  const card3 = el("div", { class: "action-card" }, [
+    el("span", { class: "ac-num" }, "3"),
+    el("strong", { class: "ac-title" }, ["대체 선택지 ", el("small", {}, "안 되면")]),
+    el("ul", { class: "ac-list" }, [
+      el("li", {}, [el("a", { class: "ac-link", href: "https://sejong.familynet.or.kr/", target: "_blank", rel: "noopener" }, "공동육아나눔터 · 가족센터 →")]),
+      el("li", {}, "도서관 영유아 프로그램 · 장난감도서관"),
+      el("li", {}, [el("button", {
+        class: "ac-cta-btn",
+        onclick: () => { const r = $("#recommend-text"); if (r) r.value = q; activateTab("recommend"); }
+      }, "→ ‘오늘의 외출·돌봄 추천’ 연결")]),
+    ]),
+  ]);
+
+  return el("div", { class: "action-cards" }, [
+    el("h3", { class: "section-title" }, "세종 육아공공서비스 액션카드"),
+    el("p", { class: "ac-lead" }, "‘어디서 봐요?’가 아니라 → ‘지금 뭘 하면 되나요?’에 답합니다"),
+    el("div", { class: "action-card-grid" }, [card1, card2, card3]),
+    el("div", { class: "safe-note" }, [
+      el("span", { class: "safe-badge" }, "SAFE"),
+      el("p", { html: "건강·예방접종은 <b>의학 판단 없이</b> 보건소·119 공식경로로만 연결 · 반복 질문은 <b>비식별 통계</b>로 행정에 환류" }),
+    ]),
+  ]);
+}
+
 function handleAsk() {
   const q = $("#ask-input").value.trim();
   if (!q) return;
@@ -831,6 +892,12 @@ function handleAsk() {
   // 2단계) 처리 단계
   root.appendChild(renderAskSteps(meta));
 
+  // 기능 ② 액션카드 — 보육·프로그램 등 '서비스성' 질문은 카드 3장으로 다음 행동까지
+  const showActionCards = (cat === "보육" || cat === "프로그램");
+  if (showActionCards) {
+    root.appendChild(renderActionCards(cat, q, { ageM, when, duration, dist }));
+  }
+
   // 3단계) 위험신호 체크리스트 (의료성 질문)
   const clKey = pickChecklist(cat, q);
   if (cat === "응급" || cat === "열") {
@@ -847,23 +914,25 @@ function handleAsk() {
     ]));
   }
 
-  // 공식정보 연결
-  const links = OFFICIAL_LINKS[cat] || OFFICIAL_LINKS["외출"];
-  root.appendChild(el("h3", { class: "section-title" }, "공식정보 연결"));
-  const list = el("div", { class: "link-list" });
-  links.forEach(l => list.appendChild(
-    el("a", {
-      class: "link-card",
-      href: l.url,
-      target: "_blank",
-      rel: "noopener",
-      onclick: () => pushLog({ type: "ask-click", url: l.url, category: cat })
-    }, [
-      el("strong", {}, l.name),
-      el("p", { class: "muted" }, l.note),
-    ])
-  ));
-  root.appendChild(list);
+  // 공식정보 연결 (액션카드가 표시된 경우 카드 ②가 공식링크를 담으므로 생략)
+  if (!showActionCards) {
+    const links = OFFICIAL_LINKS[cat] || OFFICIAL_LINKS["외출"];
+    root.appendChild(el("h3", { class: "section-title" }, "공식정보 연결"));
+    const list = el("div", { class: "link-list" });
+    links.forEach(l => list.appendChild(
+      el("a", {
+        class: "link-card",
+        href: l.url,
+        target: "_blank",
+        rel: "noopener",
+        onclick: () => pushLog({ type: "ask-click", url: l.url, category: cat })
+      }, [
+        el("strong", {}, l.name),
+        el("p", { class: "muted" }, l.note),
+      ])
+    ));
+    root.appendChild(list);
+  }
 
   // 외출 분류 → 추천 기능 연결
   if (cat === "외출") {
