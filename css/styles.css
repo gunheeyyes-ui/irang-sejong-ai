@@ -645,6 +645,8 @@ textarea:focus, input:focus, select:focus {
 }
 .action-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
   background: #fff;
   border: 1px solid var(--border);
   border-top: 4px solid var(--brand);
@@ -704,9 +706,108 @@ textarea:focus, input:focus, select:focus {
   border-radius: 50%;
   background: var(--brand);
 }
+.ac-list li b { color: var(--text); font-weight: 800; margin-right: 2px; }
+.ac-list li.ac-ok::before { background: var(--ok); }
+.ac-list li.ac-warn::before { background: var(--warn); }
+.ac-list li.ac-ok { color: var(--text); }
 .ac-link { color: var(--accent-dark); font-weight: 700; }
+
+/* 카드 2 — 번호형 공식 신청 단계 */
+.ac-steps { margin: 0; padding: 0 0 0 2px; list-style: none; counter-reset: acs; }
+.ac-steps li {
+  position: relative;
+  padding: 7px 0 7px 26px;
+  font-size: 14px;
+  color: var(--text);
+  border-top: 1px dashed var(--border);
+}
+.ac-steps li:first-child { border-top: 0; }
+.ac-steps li::before {
+  counter-increment: acs;
+  content: counter(acs);
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 11px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+.ac-sub { display: block; font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+/* 헤드라인 */
+.ac-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 14px;
+  flex-wrap: wrap;
+}
+.ac-head-tag {
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+.ac-head strong { font-size: 16px; color: var(--text); font-weight: 800; }
+
+/* 행정 환류 스트립 */
+.ac-reflux {
+  display: flex;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 16px 18px;
+  background: linear-gradient(180deg, #0f2740 0%, #143257 100%);
+  border-radius: var(--radius);
+  color: #eaf2fb;
+}
+.ac-reflux-icon { font-size: 24px; line-height: 1.2; }
+.ac-reflux-body strong { font-size: 15px; color: #fff; }
+.ac-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.ac-chip {
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #dbe8fa;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.ac-reflux-body p { margin: 0; font-size: 13px; color: #b9cbe2; }
+
+/* 범용 AI 비교 */
+.ac-compare-wrap { margin-top: 16px; }
+.ac-compare-title { display: block; font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 10px; }
+.ac-compare { width: 100%; border-collapse: separate; border-spacing: 0; }
+.ac-compare th, .ac-compare td {
+  padding: 11px 16px;
+  font-size: 13.5px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.ac-compare tr.head th { font-size: 14px; font-weight: 800; border-bottom: 2px solid var(--border-strong); }
+.ac-compare .c-gen { width: 50%; color: var(--text-muted); }
+.ac-compare tr.head .c-gen { color: var(--text); }
+.ac-compare .c-ours {
+  width: 50%;
+  color: var(--text);
+  font-weight: 700;
+  background: var(--brand-soft);
+  border-left: 1px solid var(--border);
+}
+.ac-compare tr.head .c-ours { color: var(--brand-dark); }
+.ac-compare tr:last-child th, .ac-compare tr:last-child td { border-bottom: 0; }
+
 .ac-cta-btn {
-  margin-top: 4px;
+  margin-top: auto;
   padding: 8px 12px;
   width: 100%;
   border: 1px solid var(--brand);

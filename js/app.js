@@ -213,7 +213,7 @@ function activateTab(name) {
   }
   if (name === "ask" && !demoAskDone && !$("#ask-result").hasChildNodes()) {
     demoAskDone = true;
-    $("#ask-input").value = "내일 오전에 14개월 아기를 2시간 맡길 수 있는 시간제보육을 찾고 싶어요.";
+    $("#ask-input").value = "내일 오전에 14개월 아기를 2시간 맡길 수 있을까요?";
     handleAsk();
   }
 }
@@ -794,62 +794,112 @@ function renderAskSteps(meta) {
 }
 
 // 기능 ② 핵심 — 세종 육아공공서비스 액션카드
-// 같은 질문에 카드 3장으로: ① 되는지 ② 어디서 ③ 안 되면
+// 질문을 단순 답변이 아니라 '이용 절차'로 풀어준다:
+// 해석 → 이용 가능성 → 공식 신청·확인 → 대체 선택지 → 행정 환류 → (범용 AI 비교)
 function renderActionCards(cat, q, info) {
   const { ageM, when, duration, dist } = info;
   const whenLine = [when, duration].filter(Boolean).join(" · ");
+  const ageBand = ageM == null ? "월령대" : (ageM < 12 ? "0~11개월" : ageM < 24 ? "12~23개월" : "24~36개월");
 
-  // ① 이용 가능성 (되는지)
-  const ageItem = ageM == null
-    ? "대상연령 6~36개월 — 월령 입력 시 자동 확인"
-    : (ageM >= 6 && ageM <= 36
-      ? `대상연령 충족 — ${ageM}개월 (시간제보육 6~36개월)`
-      : `대상연령 확인 필요 — ${ageM}개월`);
-  const card1 = el("div", { class: "action-card" }, [
+  // 헤드라인 — "이건 답변이 아니라 실행 안내다"
+  const head = el("div", { class: "ac-head" }, [
+    el("span", { class: "ac-head-tag" }, "시간제보육 수요로 분석"),
+    el("strong", {}, "부모가 ‘지금 바로 할 일’까지 정리했습니다"),
+  ]);
+
+  // 카드 1 — 이용 가능성 체크 (되는지)
+  const ageLi = ageM == null
+    ? el("li", {}, [el("b", {}, "대상연령"), " 6개월~36개월 미만 — 월령 입력 시 자동 대조"])
+    : (ageM >= 6 && ageM < 36
+      ? el("li", { class: "ac-ok" }, [el("b", {}, "대상연령"), ` 6~36개월 미만 → ${ageM}개월 해당 가능`])
+      : el("li", { class: "ac-warn" }, [el("b", {}, "대상연령"), ` ${ageM}개월 — 대상 여부 확인 필요`]));
+  const cardA = el("div", { class: "action-card" }, [
     el("span", { class: "ac-num" }, "1"),
-    el("strong", { class: "ac-title" }, ["이용 가능성 ", el("small", {}, "되는지")]),
+    el("strong", { class: "ac-title" }, ["이용 가능성 체크 ", el("small", {}, "되는지")]),
     el("ul", { class: "ac-list" }, [
-      el("li", {}, ageItem),
-      el("li", {}, whenLine ? `운영시간·예약 가능기간 (요청: ${whenLine})` : "운영시간 · 예약 가능기간 확인"),
-      el("li", {}, "비용 · 준비물(여벌옷·기저귀 등) 안내"),
+      ageLi,
+      el("li", {}, [el("b", {}, "이용시간"), " 평일 09:00~18:00 기준" + (whenLine ? ` (요청: ${whenLine})` : "")]),
+      el("li", {}, [el("b", {}, "예약"), " 사전예약 또는 당일 전화예약 여부 확인"]),
+      el("li", {}, [el("b", {}, "비용"), " 시간당 이용료 확인"]),
+      el("li", {}, [el("b", {}, "준비물"), " 기저귀·여벌옷·급/간식·개인물통·낮잠이불"]),
     ]),
   ]);
 
-  // ② 세종 확인기관 (어디서)
-  const districtItem = dist
-    ? `내 생활권(${dist}) 제공기관 우선 안내`
-    : "내 생활권 제공기관 안내 (생활권 선택 시 우선 표시)";
-  const card2 = el("div", { class: "action-card" }, [
+  // 카드 2 — 세종 공식 신청·확인 (어디서)
+  const cardB = el("div", { class: "action-card" }, [
     el("span", { class: "ac-num" }, "2"),
-    el("strong", { class: "ac-title" }, ["세종 확인기관 ", el("small", {}, "어디서")]),
-    el("ul", { class: "ac-list" }, [
-      el("li", {}, districtItem),
-      el("li", {}, [el("a", { class: "ac-link", href: "https://sejong.childcare.go.kr/", target: "_blank", rel: "noopener" }, "세종시 육아종합지원센터 →")]),
-      el("li", {}, [el("a", { class: "ac-link", href: "https://www.childcare.go.kr/", target: "_blank", rel: "noopener" }, "공식 신청 · 아이사랑 바로가기 →")]),
+    el("strong", { class: "ac-title" }, ["세종 공식 신청·확인 ", el("small", {}, "어디서")]),
+    el("ol", { class: "ac-steps" }, [
+      el("li", {}, [
+        el("a", { class: "ac-link", href: "https://sejongtoy.or.kr/front/index.php?g_page=time&m_page=time01", target: "_blank", rel: "noopener" }, "노리마루 시간제보육 안내 →"),
+        el("span", { class: "ac-sub" }, "세종시육아종합지원센터"),
+      ]),
+      el("li", {}, [
+        el("a", { class: "ac-link", href: "https://www.childcare.go.kr/", target: "_blank", rel: "noopener" }, "아이사랑 아동등록·신청 →"),
+        el("span", { class: "ac-sub" }, "임신육아종합포털"),
+      ]),
+      el("li", {}, "당일 이용은 제공기관에 전화로 가능 여부 확인"),
+      el("li", {}, "최종 예약 가능 여부는 공식 페이지·기관에서 확인"),
     ]),
   ]);
 
-  // ③ 대체 선택지 (안 되면)
-  const card3 = el("div", { class: "action-card" }, [
+  // 카드 3 — 대체 선택지 (안 되면) → 기능①로 다시 이어준다
+  const cardC = el("div", { class: "action-card" }, [
     el("span", { class: "ac-num" }, "3"),
-    el("strong", { class: "ac-title" }, ["대체 선택지 ", el("small", {}, "안 되면")]),
+    el("strong", { class: "ac-title" }, ["예약이 어렵다면 ", el("small", {}, "대체 선택지")]),
     el("ul", { class: "ac-list" }, [
-      el("li", {}, [el("a", { class: "ac-link", href: "https://sejong.familynet.or.kr/", target: "_blank", rel: "noopener" }, "공동육아나눔터 · 가족센터 →")]),
-      el("li", {}, "도서관 영유아 프로그램 · 장난감도서관"),
-      el("li", {}, [el("button", {
-        class: "ac-cta-btn",
-        onclick: () => { const r = $("#recommend-text"); if (r) r.value = q; activateTab("recommend"); }
-      }, "→ ‘오늘의 외출·돌봄 추천’ 연결")]),
+      el("li", {}, [
+        el("a", { class: "ac-link", href: "https://sejong.familynet.or.kr/", target: "_blank", rel: "noopener" }, "공동육아나눔터 →"),
+        el("span", { class: "ac-sub" }, dist ? `${dist} 등 가까운 생활권` : "가까운 생활권 우선"),
+      ]),
+      el("li", {}, "가족센터 프로그램 · 도서관 영유아 프로그램"),
+      el("li", {}, "복합커뮤니티센터 영유아 공간"),
     ]),
+    el("button", {
+      class: "ac-cta-btn",
+      onclick: () => { const r = $("#recommend-text"); if (r) r.value = q; activateTab("recommend"); }
+    }, "→ ‘오늘의 외출·돌봄 추천’으로 이어가기"),
+  ]);
+
+  // 행정 환류 — 기능③과 연결
+  const tokens = ["생활권" + (dist ? ` ${dist}` : ""), ageBand, "시간제보육", when || "시간대", "돌봄공백"];
+  const reflux = el("div", { class: "ac-reflux" }, [
+    el("span", { class: "ac-reflux-icon" }, "📊"),
+    el("div", { class: "ac-reflux-body" }, [
+      el("strong", {}, "행정 수요로 비식별 집계"),
+      el("div", { class: "ac-chips" }, tokens.map(t => el("span", { class: "ac-chip" }, t))),
+      el("p", {}, "개인정보 없이 위 수요로 집계되어 ‘돌봄 공백 신호’ 파악과 행정 대시보드(기능 ③)에 환류됩니다."),
+    ]),
+  ]);
+
+  // 범용 AI 비교 — 기능②의 차별성을 정면으로
+  const cmpRows = [
+    ["범용 AI", "아이랑 세종 AI"],
+    ["일반 설명 중심", "세종 공식정보표 기반"],
+    ["사용자가 출처를 직접 확인", "공식 링크·갱신일 병기"],
+    ["개인 대화에서 종료", "비식별 수요 통계로 행정 환류"],
+    ["건강 판단 위험", "판단 금지 · 공식기관 연결"],
+  ];
+  const cmp = el("table", { class: "ac-compare" }, [
+    el("tbody", {}, cmpRows.map((r, i) => el("tr", i === 0 ? { class: "head" } : {}, [
+      el(i === 0 ? "th" : "td", { class: "c-gen" }, r[0]),
+      el(i === 0 ? "th" : "td", { class: "c-ours" }, r[1]),
+    ]))),
   ]);
 
   return el("div", { class: "action-cards" }, [
     el("h3", { class: "section-title" }, "세종 육아공공서비스 액션카드"),
     el("p", { class: "ac-lead" }, "‘어디서 봐요?’가 아니라 → ‘지금 뭘 하면 되나요?’에 답합니다"),
-    el("div", { class: "action-card-grid" }, [card1, card2, card3]),
+    head,
+    el("div", { class: "action-card-grid" }, [cardA, cardB, cardC]),
+    reflux,
+    el("div", { class: "ac-compare-wrap" }, [
+      el("strong", { class: "ac-compare-title" }, "“그냥 ChatGPT면 되지 않나요?” — 같은 질문, 다른 결과"),
+      cmp,
+    ]),
     el("div", { class: "safe-note" }, [
       el("span", { class: "safe-badge" }, "SAFE"),
-      el("p", { html: "건강·예방접종은 <b>의학 판단 없이</b> 보건소·119 공식경로로만 연결 · 반복 질문은 <b>비식별 통계</b>로 행정에 환류" }),
+      el("p", { html: "건강·예방접종은 <b>의학 판단 없이</b> 보건소·119 공식경로로만 연결합니다." }),
     ]),
   ]);
 }
@@ -892,9 +942,9 @@ function handleAsk() {
   // 2단계) 처리 단계
   root.appendChild(renderAskSteps(meta));
 
-  // 기능 ② 액션카드 — 보육·프로그램 등 '서비스성' 질문은 카드 3장으로 다음 행동까지
-  const showActionCards = (cat === "보육" || cat === "프로그램");
-  if (showActionCards) {
+  // 기능 ② 액션카드 — 시간제보육(보육) 질문은 '실행 절차'까지 카드로 풀어 보여준다
+  const richCards = (cat === "보육");
+  if (richCards) {
     root.appendChild(renderActionCards(cat, q, { ageM, when, duration, dist }));
   }
 
@@ -914,8 +964,8 @@ function handleAsk() {
     ]));
   }
 
-  // 공식정보 연결 (액션카드가 표시된 경우 카드 ②가 공식링크를 담으므로 생략)
-  if (!showActionCards) {
+  // 공식정보 연결 (액션카드가 표시된 경우 카드가 공식링크를 담으므로 생략)
+  if (!richCards) {
     const links = OFFICIAL_LINKS[cat] || OFFICIAL_LINKS["외출"];
     root.appendChild(el("h3", { class: "section-title" }, "공식정보 연결"));
     const list = el("div", { class: "link-list" });
