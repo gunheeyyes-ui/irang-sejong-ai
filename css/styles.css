@@ -988,3 +988,49 @@ textarea:focus, input:focus, select:focus {
   /* 가로 스크롤 방지: 막대그래프 라벨 칸 축소 */
   .bar-row { grid-template-columns: 84px 1fr 36px; }
 }
+
+/* ============================================================
+   모바일: 탭 메뉴를 화면 하단 고정 바로 이동 (앱 스타일)
+   ============================================================ */
+@media (max-width: 640px) {
+  /* 고정 위치가 뷰포트 기준이 되도록 헤더의 backdrop-filter 제거
+     (backdrop-filter가 있으면 자식의 position:fixed가 헤더 기준이 됨) */
+  .app-header {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: #fff;
+  }
+  /* 헤더에는 로고/제목만 남김 */
+  .header-row { flex-direction: row; align-items: center; gap: 10px; padding: 10px 14px; }
+
+  /* 탭을 화면 맨 아래 고정 바로 */
+  .tabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    background: #fff;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.08);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    z-index: 200;
+  }
+  .tab {
+    flex: none;
+    padding: 7px 2px;
+    font-size: 11.5px;
+    line-height: 1.15;
+    border-radius: 8px;
+    text-align: center;
+    white-space: normal;
+    word-break: keep-all; /* 한국어 단어 단위 줄바꿈: "행정 대시보드" → 두 줄 */
+  }
+  .tab.active { box-shadow: none; }
+
+  /* 하단 바에 본문 마지막 내용이 가리지 않도록 여백 확보 */
+  main.container { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+}
