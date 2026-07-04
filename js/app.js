@@ -378,10 +378,17 @@ function scoreFacility(facility, cond) {
   }
   if (facility.accessibility.elevator) reasons.push({ type: "feat", text: "엘리베이터" });
 
-  // (3) 주차 편의 (max 10)
+  // (3) 주차 편의 (max 10) - 실내 여부 + 주차면 규모까지 세분 반영
   let parkScore = 0;
-  if (facility.parking.available) parkScore += 5;
-  if (facility.parking.indoor) parkScore += 5;
+  if (facility.parking.available) {
+    parkScore += 4;
+    if (facility.parking.indoor) parkScore += 3;
+    const cap = facility.parking.capacity || 0;
+    if (cap >= 80) parkScore += 3;
+    else if (cap >= 50) parkScore += 2;
+    else if (cap > 0) parkScore += 1;
+  }
+  parkScore = Math.min(10, parkScore);
   score += parkScore;
   breakdown.push({ label: "주차편의", score: parkScore, max: 10 });
   if (facility.parking.indoor) reasons.push({ type: "ok", text: "실내(지하) 주차 가능" });
@@ -429,7 +436,9 @@ function scoreFacility(facility, cond) {
       hardFail = true;
       reasons.push({ type: "warn", text: `${slotLabel(cond.timeSlot)}에는 운영시간(${hoursStr}) 밖` });
     } else {
-      hoursScore = 10;
+      // 운영시간 폭이 넓을수록(저녁까지 등) 유연성 가점
+      const span = ph.close - ph.open;
+      hoursScore = span >= 12 ? 10 : span >= 9 ? 9 : 8;
       reasons.push({ type: "ok", text: `${slotLabel(cond.timeSlot)} 운영 중 (${hoursStr})` });
     }
   }
@@ -464,13 +473,14 @@ function scoreFacility(facility, cond) {
     reasons.push({ type: "warn", text: "실내 선호인데 실외 시설" });
   }
 
-  // (8) 월령 적합도 (max 10)
+  // (8) 월령 적합도 (max 10) - 월령 특화 공간(대상 범위가 좁을수록)에 가점
   let ageScore = 6;
   if (cond.ageMonths != null) {
     const [minM, maxM] = facility.ageRange;
     if (cond.ageMonths >= minM && cond.ageMonths <= maxM) {
-      ageScore = 10;
+      ageScore = (maxM - minM) <= 24 ? 10 : 8;
       reasons.push({ type: "ok", text: `${cond.ageMonths}개월 적합 (대상 ${minM}~${maxM}개월)` });
+      if (ageScore === 10) reasons.push({ type: "feat", text: "해당 월령대 특화 공간" });
     } else if (cond.ageMonths < minM) {
       ageScore = 2;
       reasons.push({ type: "info", text: `권장 월령(${minM}개월~)보다 어림 - 보호자 판단 필요` });
@@ -568,7 +578,7 @@ function runRecommendation(envOverride) {
   const scored = FACILITIES.map(f => ({
     facility: f,
     ...scoreFacility(f, cond),
-    jitter: (Math.random() - 0.5) * 4, // ±2점 이내 — 유의미한 점수차는 절대 뒤집지 않음
+    jitter: (Math.random() - 0.5) * 0.98, // ±0.49 — 완전 동점만 순환, 1점이라도 다르면 순위 불변
   }));
   const byOrder = (a, b) => (b.score + b.jitter) - (a.score + a.jitter);
 
