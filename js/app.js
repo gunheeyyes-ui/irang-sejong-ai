@@ -858,11 +858,15 @@ function renderCard(r, rank, isAlt, cond = {}) {
   return el("article", { class: `card ${isAlt ? "alt" : ""}` }, [
     ribbon,
     el("div", { class: "card-head" }, [
-      el("h4", {}, f.name),
+      el("div", { class: "card-title-wrap" }, [
+        el("h4", {}, f.name),
+        (typeof RESOURCE_TAGS !== "undefined" && RESOURCE_TAGS[f.id])
+          ? el("p", { class: "resource-line" }, RESOURCE_TAGS[f.id])
+          : null,
+      ]),
       badge,
     ]),
-    el("p", { class: "muted" }, `${f.category} · ${f.district}`),
-    f.highlight ? el("p", { class: "highlight-tag" }, `★ ${f.highlight}`) : null,
+    el("p", { class: "muted card-meta" }, `${f.category} · ${f.district}`),
     coLoc.length ? el("p", { class: "colocate" }, `🏢 같은 건물에서 함께 이용: ${coLoc.join(" · ")}`) : null,
     el("div", { class: "score-line" }, [
       el("span", { class: "score-badge" }, `적합도 ${score}점`),

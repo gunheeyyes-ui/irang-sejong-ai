@@ -509,12 +509,20 @@ textarea:focus, input:focus, select:focus {
 
 .card-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   padding-right: 80px;
 }
-.card-head h4 { margin: 0; font-size: 20px; }
+.card-title-wrap { min-width: 0; }
+.card-head h4 { margin: 0; font-size: 20px; line-height: 1.25; }
+.resource-line {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-dark);
+}
+.card-meta { margin: 4px 0 0; font-size: 13px; }
 
 .badge {
   font-size: 11px;
