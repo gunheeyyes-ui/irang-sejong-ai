@@ -683,16 +683,6 @@ function renderRecommendResults(top, alt, cond) {
   const root = $("#recommend-results");
   root.innerHTML = "";
 
-  // AI가 반영한 조건 (자연어 이해 결과)
-  const condItems = buildConditionItems(cond);
-  const condGrid = el("dl", { class: "cond-grid" }, condItems.flatMap(([k, v]) => [
-    el("dt", {}, k), el("dd", {}, v),
-  ]));
-  root.appendChild(el("div", { class: "summary" }, [
-    el("strong", {}, "AI가 반영한 조건"),
-    condGrid,
-  ]));
-
   if (top.length === 0) {
     root.appendChild(el("div", { class: "empty" }, "조건에 정확히 맞는 시설을 찾지 못했습니다. 조건을 일부 완화하여 다시 검색해 보세요."));
   } else {
@@ -826,15 +816,14 @@ function buildReasonNarrative(f, r, cond) {
 function renderBreakdown(breakdown) {
   if (!breakdown || !breakdown.length) return null;
   return el("div", { class: "crit-box" }, [
-    el("p", { class: "chips-label" }, "8개 기준 분석"),
+    el("p", { class: "chips-label" }, "8개 기준"),
     el("div", { class: "crit-grid" }, breakdown.map(b => {
       const pct = Math.round((b.score / b.max) * 100);
-      return el("div", { class: "crit-item" }, [
+      return el("div", { class: "crit-item", title: `${b.label} ${b.score}/${b.max}점` }, [
         el("span", { class: "crit-name" }, b.label),
         el("div", { class: "crit-track" }, [
           el("div", { class: `crit-fill ${pct >= 70 ? "hi" : pct >= 40 ? "mid" : "lo"}`, style: `width:${pct}%` }),
         ]),
-        el("span", { class: "crit-val" }, `${b.score}/${b.max}`),
       ]);
     })),
   ]);
