@@ -908,3 +908,43 @@ const QA_INTENT = {
 Object.keys(QA_META).forEach(k => {
   if (QA_INTENT[k]) QA_META[k].intent = QA_INTENT[k];
 });
+
+// ============================================================
+// 영유아 프로그램 일정 (시범 데이터 · 요일/시간대/월령별)
+// days: 0=일 ~ 6=토 | slot: morning/afternoon/evening
+// 실제 운영 시 각 기관 월간 일정표와 연동해 월 1회 갱신합니다.
+// ============================================================
+const PROGRAMS = [
+  // 복합커뮤니티센터 (육아사랑방·다목적실)
+  { facilityId: 1,  name: "아장아장 오감놀이",        days: [2, 4],    slot: "morning",   ageRange: [6, 24],  note: "육아사랑방 · 선착순 현장접수" },
+  { facilityId: 1,  name: "그림책과 놀이 한 스푼",     days: [5],       slot: "afternoon", ageRange: [12, 36], note: "어린이도서관 연계 프로그램" },
+  { facilityId: 2,  name: "베이비 마사지 교실",        days: [1, 3],    slot: "morning",   ageRange: [2, 12],  note: "수건·매트 대여 가능" },
+  { facilityId: 3,  name: "토들러 리듬놀이",           days: [3],       slot: "afternoon", ageRange: [12, 30], note: "장난감도서관 인접 · 예약 우선" },
+  { facilityId: 4,  name: "아빠와 함께 몸놀이",        days: [6],       slot: "morning",   ageRange: [12, 36], note: "주말 가족 프로그램" },
+  { facilityId: 5,  name: "첫걸음 발달놀이터",         days: [2, 5],    slot: "morning",   ageRange: [9, 18],  note: "공동육아나눔터 협력 운영" },
+  { facilityId: 6,  name: "촉감 미술놀이",            days: [4],       slot: "afternoon", ageRange: [18, 36], note: "재료비 무료 · 앞치마 제공" },
+  { facilityId: 7,  name: "동요와 율동 교실",          days: [1],       slot: "afternoon", ageRange: [12, 36], note: "보람동 주민 우선" },
+  { facilityId: 8,  name: "아기와 요가 스트레칭",      days: [3],       slot: "morning",   ageRange: [3, 15],  note: "보호자 동반 필수" },
+  { facilityId: 9,  name: "옹알이 언어자극 놀이",      days: [5],       slot: "morning",   ageRange: [6, 18],  note: "반곡동 육아사랑방" },
+  { facilityId: 10, name: "블록 상상놀이",            days: [2],       slot: "afternoon", ageRange: [18, 36], note: "한솔동 다목적실" },
+  // 도서관
+  { facilityId: 11, name: "북스타트 그림책 첫걸음",    days: [3, 5],    slot: "morning",   ageRange: [6, 24],  note: "북스타트 꾸러미 증정" },
+  { facilityId: 12, name: "아기랑 그림책 읽어주기",    days: [2],       slot: "morning",   ageRange: [0, 24],  note: "영유아실 상시 운영" },
+  { facilityId: 13, name: "소리나는 동화 구연",        days: [4],       slot: "afternoon", ageRange: [12, 36], note: "매주 목요일 오후" },
+  { facilityId: 14, name: "국립도서관 아기둥지 투어",  days: [5, 6],    slot: "afternoon", ageRange: [12, 36], note: "어린이자료실 · 자유 참여" },
+  { facilityId: 28, name: "그림책 놀이터",            days: [2, 6],    slot: "morning",   ageRange: [6, 30],  note: "종촌동 영유아실" },
+  // 공동육아나눔터
+  { facilityId: 15, name: "쌍둥이 부모 자조모임",      days: [5],       slot: "afternoon", ageRange: [0, 36],  note: "다둥이 가정 환영" },
+  { facilityId: 16, name: "돌 전 아기 발달놀이",       days: [1, 4],    slot: "morning",   ageRange: [4, 12],  note: "월령별 소그룹" },
+  { facilityId: 17, name: "자연물 촉감놀이",          days: [3],       slot: "morning",   ageRange: [12, 30], note: "보람동 나눔터" },
+  { facilityId: 18, name: "형제자매 함께놀이",         days: [6],       slot: "afternoon", ageRange: [6, 36],  note: "주말 가족 참여형" },
+  { facilityId: 27, name: "아기 요리조리 탐색놀이",    days: [2],       slot: "afternoon", ageRange: [9, 24],  note: "아름동 나눔터" },
+  { facilityId: 29, name: "엄마랑 실내 모래놀이",      days: [4],       slot: "morning",   ageRange: [12, 36], note: "다정동 나눔터" },
+  // 거점 기관
+  { facilityId: 19, name: "초보 부모 교실 (0~12개월)", days: [3],       slot: "morning",   ageRange: [0, 12],  note: "가족센터 부모교육" },
+  { facilityId: 20, name: "시간제보육 오리엔테이션",    days: [1, 4],    slot: "morning",   ageRange: [6, 36],  note: "노리마루 · 사전예약" },
+  { facilityId: 30, name: "장난감 소독·대여의 날",     days: [2, 5],    slot: "afternoon", ageRange: [0, 36],  note: "회원 무료 대여 3점" },
+  { facilityId: 21, name: "어린이박물관 영아 감각존",  days: [3, 6, 0], slot: "afternoon", ageRange: [12, 36], note: "온라인 사전예약 권장" },
+  { facilityId: 22, name: "기록관 아기 탐험대",        days: [6],       slot: "morning",   ageRange: [18, 36], note: "어린이체험관 무료" },
+  { facilityId: 26, name: "영유아 발달 스크리닝의 날", days: [2],       slot: "morning",   ageRange: [4, 36],  note: "모자보건실 · 전화예약" },
+];
