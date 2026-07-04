@@ -563,14 +563,18 @@ function runRecommendation(envOverride) {
   });
 
   // 점수 계산
+  // jitter: 표시 점수(score)에는 영향 없이, 사실상 동점인 후보들 사이의 노출 순서만
+  // 매번 살짝 바꿔준다. (예: 조건 없는 질문에서 항상 같은 1곳만 나오는 것 방지)
   const scored = FACILITIES.map(f => ({
     facility: f,
     ...scoreFacility(f, cond),
+    jitter: (Math.random() - 0.5) * 4, // ±2점 이내 — 유의미한 점수차는 절대 뒤집지 않음
   }));
+  const byOrder = (a, b) => (b.score + b.jitter) - (a.score + a.jitter);
 
   // hardFail 제외 후 정렬
-  const pass = scored.filter(s => !s.hardFail).sort((a, b) => b.score - a.score);
-  const alt = scored.filter(s => s.hardFail).sort((a, b) => b.score - a.score);
+  const pass = scored.filter(s => !s.hardFail).sort(byOrder);
+  const alt = scored.filter(s => s.hardFail).sort(byOrder);
 
   // 생활권 가까운 곳 보너스 (있을 경우)
   if (cond.district) {
@@ -578,7 +582,7 @@ function runRecommendation(envOverride) {
       const aLocal = a.facility.district === cond.district ? 1 : 0;
       const bLocal = b.facility.district === cond.district ? 1 : 0;
       if (aLocal !== bLocal) return bLocal - aLocal;
-      return b.score - a.score;
+      return byOrder(a, b);
     });
   }
 
