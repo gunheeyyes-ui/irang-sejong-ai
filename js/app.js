@@ -536,8 +536,27 @@ function runRecommendation(envOverride) {
   const parsed = parseFreeText(text);
   // 날짜: 요일을 직접 고르지 않았고 자연어에 날짜가 있으면 실제 달력 요일로 계산
   const useParsedDate = (daySel === "" && parsed.dateObj);
-  const effDay = useParsedDate ? String(parsed.dateObj.getDay()) : daySel;
-  const effSlot = timeSel !== "" ? timeSel : (parsed.timeSlot || "");
+  let effDay = useParsedDate ? String(parsed.dateObj.getDay()) : daySel;
+  let effSlot = timeSel !== "" ? timeSel : (parsed.timeSlot || "");
+  let effDateObj = useParsedDate ? parsed.dateObj : null;
+  let lateShift = false;
+  if (effSlot === "") {
+    if (effDay !== "") {
+      // 특정 날짜/요일을 지정했는데 시간대가 없으면 낮(오후) 기준으로 추천
+      effSlot = "afternoon";
+    } else {
+      // '지금' 기준인데 이미 운영시간이 지난 늦은 밤/새벽이면 → 내일 오전 기준으로 추천
+      const nowH = new Date().getHours();
+      if (nowH >= 19 || nowH < 8) {
+        const tm = new Date();
+        if (nowH >= 19) tm.setDate(tm.getDate() + 1); // 새벽(0~7시)은 오늘 오전
+        effDay = String(tm.getDay());
+        effSlot = "morning";
+        effDateObj = tm;
+        lateShift = true;
+      }
+    }
+  }
   // 2) 폼 입력값 + 자동 환경(날씨·미세먼지)으로 종합
   const cond = {
     ...parsed,
@@ -550,7 +569,8 @@ function runRecommendation(envOverride) {
     weatherAuto: !parsed.weather && !!env.weather,
     dustAuto: !parsed.dustBad && env.dustBad,
     day: effDay,
-    dateLabel: useParsedDate ? fmtDateLabel(parsed.dateObj) : null,
+    dateLabel: effDateObj ? fmtDateLabel(effDateObj) : null,
+    lateShift,
     timeSlot: effSlot,
     costPref: costSel,
     needNursing: needNursing || parsed.needNursing,
@@ -575,7 +595,8 @@ function runRecommendation(envOverride) {
   // 점수 계산
   // jitter: 표시 점수(score)에는 영향 없이, 사실상 동점인 후보들 사이의 노출 순서만
   // 매번 살짝 바꿔준다. (예: 조건 없는 질문에서 항상 같은 1곳만 나오는 것 방지)
-  const scored = FACILITIES.map(f => ({
+  // 보건소는 검진·접종 기관이라 '외출 장소' 추천에서는 제외 (AI 질문 기능에서 안내)
+  const scored = FACILITIES.filter(f => f.category !== "보건소").map(f => ({
     facility: f,
     ...scoreFacility(f, cond),
     jitter: (Math.random() - 0.5) * 0.98, // ±0.49 — 완전 동점만 순환, 1점이라도 다르면 순위 불변
@@ -692,6 +713,12 @@ function bucketAge(m) {
 function renderRecommendResults(top, alt, cond) {
   const root = $("#recommend-results");
   root.innerHTML = "";
+
+  // 늦은 시간 자동 전환 안내
+  if (cond.lateShift) {
+    root.appendChild(el("p", { class: "outdoor-note" },
+      `🌙 지금은 대부분 시설의 운영시간이 지나서, ${cond.dateLabel || "내일"} 오전 기준으로 추천했어요.`));
+  }
 
   if (top.length === 0) {
     root.appendChild(el("div", { class: "empty" }, "조건에 정확히 맞는 시설을 찾지 못했습니다. 조건을 일부 완화하여 다시 검색해 보세요."));
@@ -1270,10 +1297,12 @@ function renderEmergencyBlock(key, isEmergency = true) {
 // 4. 행정 대시보드 (Feature 3)
 // ============================================================
 
+let skipAutoSeed = false; // '로그 초기화' 직후에는 자동 시딩하지 않음
+
 function renderDashboard() {
   let log = loadLog();
   // 심사위원 데모: 처음 열었을 때 빈 화면 대신 시범 통계가 바로 보이도록
-  if (log.length === 0) {
+  if (log.length === 0 && !skipAutoSeed) {
     seedDemoData(true);
     log = loadLog();
   }
@@ -1283,8 +1312,8 @@ function renderDashboard() {
   // 헤더
   root.appendChild(el("div", { class: "dash-head" }, [
     el("p", { class: "muted" }, `총 ${log.length}건의 비식별 이벤트가 수집되었습니다. (개인정보·정확 위치 미수집)`),
-    el("button", { class: "btn ghost small", onclick: seedDemoData }, "시연용 샘플 데이터 추가"),
-    el("button", { class: "btn ghost small", onclick: clearLog }, "로그 초기화"),
+    el("button", { class: "btn ghost small", onclick: () => seedDemoData() }, "시연용 샘플 데이터 추가"),
+    el("button", { class: "btn ghost small", onclick: () => clearLog() }, "로그 초기화"),
   ]));
 
   if (log.length === 0) {
@@ -1465,10 +1494,12 @@ function renderRecentEvents(events) {
 function clearLog() {
   if (!confirm("수집된 이벤트 로그를 모두 삭제할까요? (브라우저 로컬에만 저장된 시연용 데이터입니다)")) return;
   localStorage.removeItem(LOG_KEY);
+  skipAutoSeed = true; // 초기화 직후 자동 시딩으로 다시 채워지지 않도록
   renderDashboard();
 }
 
 function seedDemoData(silent) {
+  skipAutoSeed = false;
   // 시연용: 그럴듯한 분포의 가상 이벤트 생성
   const districts = ["도담동", "아름동", "고운동", "새롬동", "보람동", "다정동", "반곡동"];
   const ages = ["0~6개월", "7~12개월", "13~24개월", "25~36개월"];

@@ -937,7 +937,7 @@ const PROGRAMS = [
   { facilityId: 15, name: "쌍둥이 부모 자조모임",      days: [5],       slot: "afternoon", ageRange: [0, 36],  note: "다둥이 가정 환영" },
   { facilityId: 16, name: "돌 전 아기 발달놀이",       days: [1, 4],    slot: "morning",   ageRange: [4, 12],  note: "월령별 소그룹" },
   { facilityId: 17, name: "자연물 촉감놀이",          days: [3],       slot: "morning",   ageRange: [12, 30], note: "보람동 나눔터" },
-  { facilityId: 18, name: "형제자매 함께놀이",         days: [6],       slot: "afternoon", ageRange: [6, 36],  note: "주말 가족 참여형" },
+  { facilityId: 18, name: "형제자매 함께놀이",         days: [3],       slot: "afternoon", ageRange: [6, 36],  note: "온 가족 참여형" },
   { facilityId: 27, name: "아기 요리조리 탐색놀이",    days: [2],       slot: "afternoon", ageRange: [9, 24],  note: "아름동 나눔터" },
   { facilityId: 29, name: "엄마랑 실내 모래놀이",      days: [4],       slot: "morning",   ageRange: [12, 36], note: "다정동 나눔터" },
   // 거점 기관
