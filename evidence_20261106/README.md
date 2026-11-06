@@ -14,5 +14,9 @@ GitHub 저장소: https://github.com/gunheeyyes-ui/irang-sejong-ai
 - 06: GitHub `js/app.js`의 동일 주소 시설 목록 생성 로직
 - 07: GitHub 커밋 목록
 - 08: GitHub 저장소·README 화면
+- 09: 2026년 6월 11일 주소 중복 방지 기능을 추가한 실제 커밋 기록
+- 10: 같은 커밋의 실제 소스 코드 변경(diff)
+
+수정 커밋: https://github.com/gunheeyyes-ui/irang-sejong-ai/commit/7cdb92ae3c50dfb9c0712fa26d33abb7030b7db7
 
 증빙 범위: 주소 중복 방지 및 같은 건물 묶음 안내 기능이 구현되고 배포 페이지에서 동작한다는 점. 본 서비스는 시연 데이터와 규칙 기반 추천을 사용하는 프로토타입입니다. 시설·운영정보는 실제 방문 전에 공식 사이트로 확인해야 합니다.
