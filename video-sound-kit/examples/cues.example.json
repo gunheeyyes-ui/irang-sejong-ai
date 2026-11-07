@@ -1,0 +1,17 @@
+{
+  "fps": 30,
+  "duration_s": 60.0,
+  "energy": "calm",
+  "kit": "audio/kit",
+  "music": {"file": "audio/music.wav", "start_s": 0, "loop": true, "fade_out_s": 2.0},
+  "voice": [{"file": "audio/vo.wav", "start_s": 1.0}],
+  "silence_ok": [[59.0, 60.0]],
+  "cues": [
+    {"id": "title-in", "frame": 15, "sound": "whoosh", "weight": "support", "align": "peak", "visual": "move"},
+    {"id": "problem-card", "frame": 240, "sound": "pop", "weight": "support", "visual": "appear"},
+    {"id": "app-tap", "frame": 600, "sound": "click", "weight": "support", "visual": "land"},
+    {"id": "result-ding", "frame": 630, "sound": "chime/own-notify-soft", "weight": "support", "visual": "appear"},
+    {"id": "key-message", "frame": 1500, "sound": "thump+tap", "weight": "hero", "visual": "land",
+     "stop_before": true}
+  ]
+}
