@@ -1,0 +1,10 @@
+{
+  "note": "라이브러리(sfx.py kit) 밖에서 들인 모든 파일의 출처 대장. license: cc0 | pdm | earshot | own | licensed | by. licensed 는 proof(구매 영수증·약관 파일 경로) 필수.",
+  "files": [
+    {"path": "audio/music.wav", "license": "licensed", "title": "배경음악 제목", "creator": "작곡가 / 음원 사이트",
+     "url": "https://…", "proof": "docs/receipts/music-license.pdf", "note": "공모전 2차 활용 허용 조항 확인함"},
+    {"path": "audio/vo.wav", "license": "own", "title": "내레이션", "creator": "팀원 직접 녹음"},
+    {"path": "audio/own/notify-soft.wav", "kit_id": "chime/own-notify-soft", "license": "earshot",
+     "title": "earshot notify/m0", "creator": "earshot (code-generated, MIT)"}
+  ]
+}
